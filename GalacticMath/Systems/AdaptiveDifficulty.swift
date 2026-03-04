@@ -80,10 +80,10 @@ final class AdaptiveDifficulty {
         }
     }
 
-    func currentSpeed(for ageGroup: AgeGroup) -> CGFloat {
-        let base = ageGroup.baseEnemySpeed
+    func currentSpeed(for grade: Grade) -> CGFloat {
+        let base = grade.enemySpeed
         let adjusted = base * speedMultiplier
-        return min(max(adjusted, ageGroup.minEnemySpeed), ageGroup.maxEnemySpeed)
+        return min(max(adjusted, grade.minEnemySpeed), grade.maxEnemySpeed)
     }
 
     /// True when speed just increased (after recordAnswer)

@@ -19,12 +19,12 @@ final class WaveManager {
     var isBossActive: Bool = false
     var bossDefeatedThisLevel: Bool = false
 
-    private let ageGroup: AgeGroup
+    private let grade: Grade
     private let gameManager = GameManager.shared
     private let mathEngine = MathEngine.shared
 
-    init(ageGroup: AgeGroup) {
-        self.ageGroup = ageGroup
+    init(grade: Grade) {
+        self.grade = grade
     }
 
     func startNewProblem() {
@@ -32,16 +32,18 @@ final class WaveManager {
         attemptCount = 0
 
         if gameManager.isBossRound() && !isBossActive && !bossDefeatedThisLevel {
-            let problem = mathEngine.generateBossProblem(ageGroup: ageGroup, level: gameManager.currentLevel)
+            let problem = mathEngine.generateBossProblem(grade: grade, level: gameManager.currentLevel)
             currentProblem = problem
             isBossActive = true
             delegate?.waveManagerBossRound(problem)
             return
         }
 
-        let problem = mathEngine.generateProblem(ageGroup: ageGroup, level: gameManager.currentLevel)
-        currentProblem = problem
-        delegate?.waveManagerDidRequestNewProblem(problem)
+        if let gradeLevel = Curriculum.level(for: grade, levelNumber: gameManager.currentLevel) {
+            let problem = mathEngine.generateProblem(grade: grade, level: gradeLevel)
+            currentProblem = problem
+            delegate?.waveManagerDidRequestNewProblem(problem)
+        }
     }
 
     func handleAnswerHit(answer: Int, timeTaken: TimeInterval) -> Bool {

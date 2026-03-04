@@ -4,21 +4,21 @@ final class PlayerShip: SKNode {
     private var shipBody: SKShapeNode!
     private var engineTrail: SKEmitterNode?
     private var shieldNode: SKShapeNode?
-    private var ageGroup: AgeGroup = .cadet
+    private var grade: Grade = .kindergarten
     var currentBeam: Int = 0
     var isInvincible: Bool = false
     private var isMoving: Bool = false
 
-    func setup(ageGroup: AgeGroup) {
-        self.ageGroup = ageGroup
+    func setup(grade: Grade) {
+        self.grade = grade
         removeAllChildren()
 
-        switch ageGroup {
-        case .cadet:
+        switch grade.rawValue {
+        case 0...1:
             buildCadetShip()
-        case .pilot:
+        case 2...3:
             buildPilotShip()
-        case .ace:
+        default:
             buildAceShip()
         }
 
@@ -144,16 +144,16 @@ final class PlayerShip: SKNode {
         emitter.particleAlpha = 0.8
         emitter.particleAlphaSpeed = -1.5
 
-        switch ageGroup {
-        case .cadet:
+        switch grade.rawValue {
+        case 0...1:
             emitter.particleColor = SKColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0)
             emitter.particleColorBlueRange = 0.0
             emitter.particleColorRedRange = 0.3
-        case .pilot:
+        case 2...3:
             emitter.particleColor = SKColor(red: 0.0, green: 0.7, blue: 1.0, alpha: 1.0)
             emitter.particleColorBlueRange = 0.3
-        case .ace:
-            emitter.particleColor = SKColor(red: 0.8, green: 0.3, blue: 1.0, alpha: 1.0)
+        default:
+            emitter.particleColor = grade.primaryColor
             emitter.particleColorRedRange = 0.3
         }
 

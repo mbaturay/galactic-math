@@ -4,11 +4,11 @@ final class StarField: SKNode {
     private var layers: [[SKShapeNode]] = [[], [], []]
     private var speeds: [CGFloat] = [15, 30, 60]
     private var sceneSize: CGSize = .zero
-    private var ageGroup: AgeGroup = .cadet
+    private var grade: Grade = .kindergarten
 
-    func setup(size: CGSize, ageGroup: AgeGroup) {
+    func setup(size: CGSize, grade: Grade) {
         self.sceneSize = size
-        self.ageGroup = ageGroup
+        self.grade = grade
 
         let starCounts = [40, 25, 15]
         let starSizes: [CGFloat] = [1.0, 1.5, 2.5]
@@ -21,7 +21,7 @@ final class StarField: SKNode {
                     y: CGFloat.random(in: 0...size.height)
                 )
 
-                if ageGroup == .cadet {
+                if grade.rawValue < 2 {
                     let colors: [SKColor] = [.white, .yellow, .cyan, SKColor(red: 1, green: 0.7, blue: 0.7, alpha: 1)]
                     star.fillColor = colors.randomElement()!
                     if layer == 2 {

@@ -7,17 +7,17 @@ final class NumberEnemy: SKNode {
 
     private var body: SKShapeNode!
     private var label: SKLabelNode!
-    private var ageGroup: AgeGroup
+    private var grade: Grade
     private var dustEmitter: SKEmitterNode?
     private var crackNodes: [SKShapeNode] = []
     private(set) var vertices: [CGPoint] = []
     private let baseRadius: CGFloat = 50
 
-    init(answer: Int, beam: Int, isCorrect: Bool, ageGroup: AgeGroup, beamColor: SKColor) {
+    init(answer: Int, beam: Int, isCorrect: Bool, grade: Grade, beamColor: SKColor) {
         self.answerValue = answer
         self.beamIndex = beam
         self.isCorrect = isCorrect
-        self.ageGroup = ageGroup
+        self.grade = grade
         super.init()
 
         buildAsteroid()
@@ -82,7 +82,7 @@ final class NumberEnemy: SKNode {
         // Shadow label for legibility
         let shadow = SKLabelNode(text: "\(answer)")
         shadow.fontName = "AvenirNext-Heavy"
-        shadow.fontSize = ageGroup == .cadet ? 32 : 30
+        shadow.fontSize = grade.rawValue < 2 ? 32 : 30
         shadow.fontColor = SKColor(white: 0, alpha: 0.8)
         shadow.verticalAlignmentMode = .center
         shadow.horizontalAlignmentMode = .center
@@ -92,7 +92,7 @@ final class NumberEnemy: SKNode {
 
         label = SKLabelNode(text: "\(answer)")
         label.fontName = "AvenirNext-Heavy"
-        label.fontSize = ageGroup == .cadet ? 32 : 30
+        label.fontSize = grade.rawValue < 2 ? 32 : 30
         label.fontColor = .white
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center

@@ -9,7 +9,7 @@ final class ProgressManager {
         var weakTopics: [MathTopic] = []
         var strongTopics: [MathTopic] = []
 
-        for (key, stats) in profile.topicAccuracy {
+        for (key, stats) in profile.accuracyPerTopic {
             guard let topic = MathTopic(rawValue: key) else { continue }
             if stats.accuracy < 0.7 && stats.total >= 3 {
                 weakTopics.append(topic)
@@ -31,7 +31,7 @@ final class ProgressManager {
             strongTopics: strongTopics,
             overallAccuracy: overallAccuracy,
             totalProblemsAttempted: profile.totalAttempted,
-            favoriteLevel: profile.currentLevel
+            favoriteLevel: profile.currentLevel(for: profile.currentGrade)
         )
     }
 }

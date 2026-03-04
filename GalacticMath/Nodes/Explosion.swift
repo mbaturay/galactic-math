@@ -1,7 +1,7 @@
 import SpriteKit
 
 final class Explosion: SKNode {
-    static func correctExplosion(at position: CGPoint, ageGroup: AgeGroup) -> Explosion {
+    static func correctExplosion(at position: CGPoint, grade: Grade) -> Explosion {
         let explosion = Explosion()
         explosion.position = position
 
@@ -39,26 +39,17 @@ final class Explosion: SKNode {
         emitter.particleAlpha = 1.0
         emitter.particleAlphaSpeed = -1.0
 
-        switch ageGroup {
-        case .cadet:
-            emitter.particleColor = SKColor(red: 1.0, green: 0.8, blue: 0.3, alpha: 1.0)
-            emitter.particleColorRedRange = 0.3
-            emitter.particleColorGreenRange = 0.4
-            emitter.particleColorBlueRange = 0.2
-        case .pilot:
-            emitter.particleColor = SKColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1.0)
-            emitter.particleColorBlueRange = 0.3
-        case .ace:
-            emitter.particleColor = SKColor(red: 1.0, green: 0.7, blue: 0.2, alpha: 1.0)
-            emitter.particleColorRedRange = 0.3
-        }
+        emitter.particleColor = SKColor(red: 1.0, green: 0.8, blue: 0.3, alpha: 1.0)
+        emitter.particleColorRedRange = 0.3
+        emitter.particleColorGreenRange = 0.4
+        emitter.particleColorBlueRange = 0.2
 
         emitter.particleBlendMode = .add
         explosion.addChild(emitter)
 
         let label = SKLabelNode(text: "CORRECT!")
         label.fontName = "AvenirNext-Bold"
-        label.fontSize = ageGroup == .cadet ? 28 : 22
+        label.fontSize = grade.rawValue < 2 ? 28 : 22
         label.fontColor = SKColor(red: 0.2, green: 1.0, blue: 0.3, alpha: 1.0)
         label.position = CGPoint(x: 0, y: 30)
         label.zPosition = 100
@@ -74,7 +65,7 @@ final class Explosion: SKNode {
         return explosion
     }
 
-    static func wrongExplosion(at position: CGPoint, ageGroup: AgeGroup) -> Explosion {
+    static func wrongExplosion(at position: CGPoint, grade: Grade) -> Explosion {
         let explosion = Explosion()
         explosion.position = position
 
@@ -97,10 +88,10 @@ final class Explosion: SKNode {
         emitter.particleBlendMode = .add
         explosion.addChild(emitter)
 
-        let msg = ageGroup == .cadet ? "Try again!" : "TRY AGAIN!"
+        let msg = grade.rawValue < 2 ? "Try again!" : "TRY AGAIN!"
         let label = SKLabelNode(text: msg)
         label.fontName = "AvenirNext-Bold"
-        label.fontSize = ageGroup == .cadet ? 22 : 18
+        label.fontSize = grade.rawValue < 2 ? 22 : 18
         label.fontColor = SKColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 1.0)
         label.position = CGPoint(x: 0, y: 30)
         label.zPosition = 100

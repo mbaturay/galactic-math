@@ -4,13 +4,13 @@ final class ProblemDisplayNode: SKNode {
     private var background: SKShapeNode!
     private var questionLabel: SKLabelNode!
     private var subtitleLabel: SKLabelNode!
-    private var ageGroup: AgeGroup = .cadet
+    private var grade: Grade = .kindergarten
     private var panelWidth: CGFloat = 0
     private var currentPanelHeight: CGFloat = 80
 
     /// Panel is top-anchored: local y=0 is the top edge, panel expands downward.
-    func setup(ageGroup: AgeGroup, width: CGFloat) {
-        self.ageGroup = ageGroup
+    func setup(grade: Grade, width: CGFloat) {
+        self.grade = grade
         self.panelWidth = min(width * 0.88, 500)
         removeAllChildren()
 
@@ -18,7 +18,7 @@ final class ProblemDisplayNode: SKNode {
 
         questionLabel = SKLabelNode(text: "")
         questionLabel.fontName = "AvenirNext-Heavy"
-        questionLabel.fontSize = ageGroup == .cadet ? 26 : 22
+        questionLabel.fontSize = grade.rawValue < 2 ? 26 : 22
         questionLabel.fontColor = .white
         questionLabel.verticalAlignmentMode = .center
         questionLabel.horizontalAlignmentMode = .center
@@ -120,7 +120,7 @@ final class ProblemDisplayNode: SKNode {
 
             questionLabel.text = question
             questionLabel.fontName = "AvenirNext-Heavy"
-            questionLabel.fontSize = ageGroup == .cadet ? 26 : 22
+            questionLabel.fontSize = grade.rawValue < 2 ? 26 : 22
             questionLabel.fontColor = .white
             questionLabel.position = CGPoint(x: 0, y: -28)
 

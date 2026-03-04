@@ -1,15 +1,15 @@
 import SpriteKit
 
 final class GameOverScene: SKScene {
-    var selectedAgeGroup: AgeGroup = .cadet
+    var selectedGrade: Grade = .kindergarten
     var bossDestroyedPlayer: Bool = false
     private var starField: StarField!
 
     override func didMove(to view: SKView) {
-        backgroundColor = selectedAgeGroup.backgroundColor
+        backgroundColor = selectedGrade.backgroundColor
 
         starField = StarField()
-        starField.setup(size: size, ageGroup: selectedAgeGroup)
+        starField.setup(size: size, grade: selectedGrade)
         addChild(starField)
 
         AudioManager.shared.playGameOver()
@@ -36,15 +36,12 @@ final class GameOverScene: SKScene {
         let message: String
         if bossDestroyedPlayer {
             message = "The Sector Sentinel was too powerful!"
+        } else if selectedGrade.rawValue < 2 {
+            message = "Good try, Space Cadet! Keep practicing!"
+        } else if selectedGrade.rawValue < 4 {
+            message = "Nice effort, Star Pilot! Try again?"
         } else {
-            switch selectedAgeGroup {
-            case .cadet:
-                message = "Good try, Space Cadet! Keep practicing!"
-            case .pilot:
-                message = "Nice effort, Star Pilot! Try again?"
-            case .ace:
-                message = "Great attempt, Commander! Ready for another mission?"
-            }
+            message = "Great attempt, Commander! Ready for another mission?"
         }
 
         let msgLabel = SKLabelNode(text: message)
@@ -56,7 +53,7 @@ final class GameOverScene: SKScene {
         addChild(msgLabel)
 
         // Player avatar
-        let avatar = gm.currentProfile?.avatar ?? "🚀"
+        let avatar = gm.currentProfile?.avatar ?? "\u{1F680}"
         let avatarLabel = SKLabelNode(text: avatar)
         avatarLabel.fontSize = 50
         avatarLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.61)
@@ -67,7 +64,7 @@ final class GameOverScene: SKScene {
         let scoreLabel = SKLabelNode(text: "Score: \(gm.score)")
         scoreLabel.fontName = "AvenirNext-Bold"
         scoreLabel.fontSize = 28
-        scoreLabel.fontColor = selectedAgeGroup.primaryColor
+        scoreLabel.fontColor = selectedGrade.primaryColor
         scoreLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         scoreLabel.zPosition = 10
         addChild(scoreLabel)
@@ -84,7 +81,7 @@ final class GameOverScene: SKScene {
         // Try Again button
         let retryBtn = createButton(
             text: "TRY AGAIN",
-            color: selectedAgeGroup.primaryColor,
+            color: selectedGrade.primaryColor,
             position: CGPoint(x: size.width / 2, y: size.height * 0.32),
             name: "tryAgain"
         )
@@ -145,10 +142,10 @@ final class GameOverScene: SKScene {
         AudioManager.shared.playMenuTap()
 
         if tappedName == "tryAgain" {
-            GameManager.shared.startNewGame(ageGroup: selectedAgeGroup)
+            GameManager.shared.startNewGame(grade: selectedGrade)
             let gameScene = GameScene(size: self.size)
             gameScene.scaleMode = .resizeFill
-            gameScene.selectedAgeGroup = selectedAgeGroup
+            gameScene.selectedGrade = selectedGrade
             view?.presentScene(gameScene, transition: SKTransition.doorway(withDuration: 1.0))
         } else if tappedName == "mainMenu" {
             GameManager.shared.resetToMenu()

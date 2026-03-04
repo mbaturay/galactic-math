@@ -6,7 +6,7 @@ final class BeamGrid: SKNode {
     private var gridLineNodes: [SKShapeNode] = []
     private var beamCount: Int = 5
     private var sceneSize: CGSize = .zero
-    private var ageGroup: AgeGroup = .cadet
+    private var grade: Grade = .kindergarten
     private var activeBeamIndex: Int = -1
 
     // Grid line animation
@@ -19,10 +19,10 @@ final class BeamGrid: SKNode {
         return CGPoint(x: sceneSize.width / 2, y: sceneSize.height * 0.85)
     }
 
-    func setup(size: CGSize, ageGroup: AgeGroup) {
+    func setup(size: CGSize, grade: Grade) {
         self.sceneSize = size
-        self.ageGroup = ageGroup
-        self.beamCount = ageGroup.beamCount
+        self.grade = grade
+        self.beamCount = grade.beamCount
 
         calculateBeamPositions()
         drawBeams()
@@ -48,7 +48,7 @@ final class BeamGrid: SKNode {
         baseBeamLines.removeAll()
         colorBeamLines.removeAll()
 
-        let colors = ageGroup.beamColors
+        let colors = grade.beamColors
 
         for i in 0..<beamCount {
             let path = CGMutablePath()

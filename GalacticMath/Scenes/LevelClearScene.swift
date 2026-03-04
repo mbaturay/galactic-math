@@ -1,14 +1,14 @@
 import SpriteKit
 
 final class LevelClearScene: SKScene {
-    var selectedAgeGroup: AgeGroup = .cadet
+    var selectedGrade: Grade = .kindergarten
     private var starField: StarField!
 
     override func didMove(to view: SKView) {
-        backgroundColor = selectedAgeGroup.backgroundColor
+        backgroundColor = selectedGrade.backgroundColor
 
         starField = StarField()
-        starField.setup(size: size, ageGroup: selectedAgeGroup)
+        starField.setup(size: size, grade: selectedGrade)
         addChild(starField)
 
         // Confetti
@@ -83,7 +83,7 @@ final class LevelClearScene: SKScene {
         addChild(menuBtn)
 
         // Flying avatar
-        let avatarEmoji = GameManager.shared.currentProfile?.avatar ?? "🚀"
+        let avatarEmoji = GameManager.shared.currentProfile?.avatar ?? "\u{1F680}"
         let rocket = SKLabelNode(text: avatarEmoji)
         rocket.fontSize = 40
         rocket.position = CGPoint(x: -50, y: size.height * 0.5)
@@ -142,11 +142,21 @@ final class LevelClearScene: SKScene {
         AudioManager.shared.playMenuTap()
 
         if tappedName == "nextLevel" {
-            GameManager.shared.advanceLevel()
-            let gameScene = GameScene(size: self.size)
-            gameScene.scaleMode = .resizeFill
-            gameScene.selectedAgeGroup = selectedAgeGroup
-            view?.presentScene(gameScene, transition: SKTransition.doorway(withDuration: 1.0))
+            let earnedBadges = GameManager.shared.advanceLevel()
+
+            if !earnedBadges.isEmpty {
+                // Show badge celebration before continuing
+                let badgeScene = BadgeCelebrationScene(size: self.size)
+                badgeScene.scaleMode = .resizeFill
+                badgeScene.earnedBadges = earnedBadges
+                badgeScene.selectedGrade = selectedGrade
+                view?.presentScene(badgeScene, transition: SKTransition.crossFade(withDuration: 0.8))
+            } else {
+                let gameScene = GameScene(size: self.size)
+                gameScene.scaleMode = .resizeFill
+                gameScene.selectedGrade = selectedGrade
+                view?.presentScene(gameScene, transition: SKTransition.doorway(withDuration: 1.0))
+            }
         } else if tappedName == "mainMenu" {
             GameManager.shared.resetToMenu()
             let scene = TitleScene(size: self.size)

@@ -10,7 +10,7 @@ final class TitleScene: SKScene {
 
         // Star field
         starField = StarField()
-        starField.setup(size: size, ageGroup: .pilot)
+        starField.setup(size: size, grade: .grade3)
         addChild(starField)
 
         // Title
@@ -62,15 +62,15 @@ final class TitleScene: SKScene {
         ])
         tapLabel.run(SKAction.repeatForever(pulse))
 
-        // High scores
+        // High scores per grade
         let gm = GameManager.shared
         var yPos = size.height * 0.22
-        for group in AgeGroup.allCases {
-            if let best = gm.slots.values.filter({ $0.ageGroup == group }).max(by: { $0.highScore < $1.highScore }), best.highScore > 0 {
-                let scoreLabel = SKLabelNode(text: "\(group.shortName): \(best.highScore)")
+        for grade in Grade.allCases {
+            if let best = gm.slots.values.filter({ $0.currentGrade == grade || $0.highScore(for: grade) > 0 }).max(by: { $0.highScore(for: grade) < $1.highScore(for: grade) }), best.highScore(for: grade) > 0 {
+                let scoreLabel = SKLabelNode(text: "\(grade.shortName): \(best.highScore(for: grade))")
                 scoreLabel.fontName = "AvenirNext-Medium"
                 scoreLabel.fontSize = 14
-                scoreLabel.fontColor = group.primaryColor.withAlphaComponent(0.7)
+                scoreLabel.fontColor = grade.primaryColor.withAlphaComponent(0.7)
                 scoreLabel.position = CGPoint(x: size.width / 2, y: yPos)
                 scoreLabel.zPosition = 10
                 addChild(scoreLabel)
@@ -177,7 +177,7 @@ final class ParentGateScene: SKScene {
         backgroundColor = SKColor(red: 0.03, green: 0.01, blue: 0.1, alpha: 1.0)
 
         starField = StarField()
-        starField.setup(size: size, ageGroup: .pilot)
+        starField.setup(size: size, grade: .grade3)
         addChild(starField)
 
         let title = SKLabelNode(text: "Parent Access")
@@ -321,7 +321,7 @@ final class ParentDashboardScene: SKScene {
         backgroundColor = SKColor(red: 0.03, green: 0.01, blue: 0.1, alpha: 1.0)
 
         starField = StarField()
-        starField.setup(size: size, ageGroup: .pilot)
+        starField.setup(size: size, grade: .grade3)
         addChild(starField)
 
         let title = SKLabelNode(text: "Parent Dashboard")
@@ -374,16 +374,17 @@ final class ParentDashboardScene: SKScene {
     }
 
     private func drawProfileReport(_ report: ProgressReport, yStart: CGFloat) {
-        let nameLabel = SKLabelNode(text: "\(report.profile.name) - \(report.profile.ageGroup.shortName)")
+        let profile = report.profile
+        let nameLabel = SKLabelNode(text: "\(profile.name) - \(profile.currentGrade.displayName)")
         nameLabel.fontName = "AvenirNext-Bold"
         nameLabel.fontSize = 17
-        nameLabel.fontColor = report.profile.ageGroup.primaryColor
+        nameLabel.fontColor = profile.currentGrade.primaryColor
         nameLabel.horizontalAlignmentMode = .left
         nameLabel.position = CGPoint(x: 20, y: yStart)
         nameLabel.zPosition = 10
         addChild(nameLabel)
 
-        let stats = SKLabelNode(text: "Acc: \(Int(report.overallAccuracy * 100))% | Probs: \(report.totalProblemsAttempted) | Hi: \(report.profile.highScore)")
+        let stats = SKLabelNode(text: "Acc: \(Int(report.overallAccuracy * 100))% | Probs: \(report.totalProblemsAttempted) | Hi: \(profile.highScore(for: profile.currentGrade))")
         stats.fontName = "AvenirNext-Regular"
         stats.fontSize = 12
         stats.fontColor = SKColor(white: 0.8, alpha: 1.0)
@@ -396,7 +397,7 @@ final class ParentDashboardScene: SKScene {
         var barY = yStart - 48
         let barMaxWidth: CGFloat = min(size.width - 140, 240)
 
-        for (key, topicStats) in report.profile.topicAccuracy {
+        for (key, topicStats) in profile.accuracyPerTopic {
             guard let topic = MathTopic(rawValue: key), topicStats.total >= 2 else { continue }
             if barY < 50 { break }
 

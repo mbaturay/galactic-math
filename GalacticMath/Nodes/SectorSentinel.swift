@@ -5,14 +5,14 @@ final class SectorSentinel: SKNode {
     private var glowCore: SKShapeNode!
     private var problemLabel: SKLabelNode!
     private var healthBar: SKShapeNode!
-    private var ageGroup: AgeGroup = .cadet
+    private var grade: Grade = .kindergarten
     private var crackNodes: [SKShapeNode] = []
     var problem: MathProblem?
 
     private let bossRadius: CGFloat = 60
 
-    func setup(ageGroup: AgeGroup, sceneSize: CGSize) {
-        self.ageGroup = ageGroup
+    func setup(grade: Grade, sceneSize: CGSize) {
+        self.grade = grade
         removeAllChildren()
         crackNodes.removeAll()
 
@@ -35,17 +35,9 @@ final class SectorSentinel: SKNode {
         body.glowWidth = 4.0
         addChild(body)
 
-        // Glowing core — age-group primary color
+        // Glowing core — grade primary color
         glowCore = SKShapeNode(circleOfRadius: 20)
-        let coreColor: SKColor
-        switch ageGroup {
-        case .cadet:
-            coreColor = SKColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1.0)
-        case .pilot:
-            coreColor = SKColor(red: 0.0, green: 0.7, blue: 1.0, alpha: 1.0)
-        case .ace:
-            coreColor = SKColor(red: 0.8, green: 0.3, blue: 1.0, alpha: 1.0)
-        }
+        let coreColor = grade.primaryColor
         glowCore.fillColor = coreColor.withAlphaComponent(0.4)
         glowCore.strokeColor = coreColor.withAlphaComponent(0.6)
         glowCore.lineWidth = 1.5

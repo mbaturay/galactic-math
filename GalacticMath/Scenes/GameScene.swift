@@ -2,7 +2,7 @@ import SpriteKit
 import GameplayKit
 
 final class GameScene: SKScene, WaveManagerDelegate {
-    var selectedAgeGroup: AgeGroup = .cadet
+    var selectedGrade: Grade = .kindergarten
 
     // MARK: - Proximity Zone
 
@@ -92,10 +92,10 @@ final class GameScene: SKScene, WaveManagerDelegate {
     private let backgroundAsteroidCount = Int.random(in: 5...8)
 
     override func didMove(to view: SKView) {
-        backgroundColor = selectedAgeGroup.backgroundColor
+        backgroundColor = selectedGrade.backgroundColor
 
-        currentBeam = selectedAgeGroup.beamCount / 2
-        enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: selectedAgeGroup)
+        currentBeam = selectedGrade.beamCount / 2
+        enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: selectedGrade)
 
         setupStarField()
         spawnBackgroundAsteroids()
@@ -107,10 +107,11 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         // Start game
         isGameActive = true
-        let topics = MathTopic.topics(for: selectedAgeGroup, level: gameManager.currentLevel)
-        hud.updateLevel(gameManager.currentLevel, topic: topics.first?.displayName ?? "")
+        if let gradeLevel = gameManager.currentGradeLevel {
+            hud.updateLevel(gameManager.currentLevel, topic: gradeLevel.topic.displayName)
+        }
 
-        waveManager = WaveManager(ageGroup: selectedAgeGroup)
+        waveManager = WaveManager(grade: selectedGrade)
         waveManager.delegate = self
 
         // Small delay before first problem
@@ -142,7 +143,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func setupStarField() {
         starField = StarField()
-        starField.setup(size: size, ageGroup: selectedAgeGroup)
+        starField.setup(size: size, grade: selectedGrade)
         addChild(starField)
     }
 
@@ -157,7 +158,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func setupBeamGrid() {
         beamGrid = BeamGrid()
-        beamGrid.setup(size: size, ageGroup: selectedAgeGroup)
+        beamGrid.setup(size: size, grade: selectedGrade)
         addChild(beamGrid)
         enemyStartY = beamGrid.vanishingPoint.y - 20
         enemyTargetY = size.height * 0.10
@@ -187,7 +188,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func setupPlayerShip() {
         playerShip = PlayerShip()
-        playerShip.setup(ageGroup: selectedAgeGroup)
+        playerShip.setup(grade: selectedGrade)
         let shipX = beamGrid.positionForBeam(currentBeam)
         playerShip.position = CGPoint(x: shipX, y: enemyTargetY)
         playerShip.zPosition = 20
@@ -202,7 +203,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
     private func setupHUD() {
         hud = HUDNode()
         let safeTop = view?.safeAreaInsets.top ?? 0
-        hud.setup(size: size, ageGroup: selectedAgeGroup, safeAreaTop: safeTop)
+        hud.setup(size: size, grade: selectedGrade, safeAreaTop: safeTop)
         hud.onPauseTapped = { [weak self] in
             self?.showPauseOverlay()
         }
@@ -211,7 +212,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func setupTouchControls() {
         touchControls = TouchControlsNode()
-        touchControls.setup(size: size, ageGroup: selectedAgeGroup)
+        touchControls.setup(size: size, grade: selectedGrade)
         addChild(touchControls)
 
         touchControls.onBackTap = { [weak self] in
@@ -247,7 +248,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func movePlayerRight() {
         guard isGameActive && !isPaused_ else { return }
-        if currentBeam < selectedAgeGroup.beamCount - 1 {
+        if currentBeam < selectedGrade.beamCount - 1 {
             currentBeam += 1
             let x = beamGrid.positionForBeam(currentBeam)
             let angle = beamGrid.beamAngle(at: currentBeam, y: enemyTargetY)
@@ -268,7 +269,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         beamGrid.flashBeam(currentBeam)
 
         let laser = LaserBeam()
-        let beamColors = selectedAgeGroup.beamColors
+        let beamColors = selectedGrade.beamColors
         laser.setup(color: beamColors[currentBeam % beamColors.count])
         laser.beamIndex = currentBeam
         laser.zPosition = 15
@@ -294,7 +295,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         audioManager.playTorpedo()
 
         let torpedo = Torpedo()
-        torpedo.setup(ageGroup: selectedAgeGroup)
+        torpedo.setup(grade: selectedGrade)
         torpedo.beamIndex = currentBeam
         torpedo.zPosition = 15
         torpedo.position = playerShip.position
@@ -387,6 +388,13 @@ final class GameScene: SKScene, WaveManagerDelegate {
         // Zone feedback
         showZoneFeedback(zone: zone, points: finalPoints, at: enemy.position)
 
+        // Track incredible shots
+        if zone == .top {
+            gameManager.recordIncredibleShot()
+        } else {
+            gameManager.resetIncredibleStreak()
+        }
+
         // Proximity tip — show once per profile on first BOTTOM zone hit
         var showedProximityTip = false
         if zone == .bottom, let idx = gameManager.currentSlotIndex,
@@ -429,7 +437,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         confetti.burst(in: size)
 
         // Chain explosion: correct enemy first (sized by zone), then remaining L→R
-        let beamColors = selectedAgeGroup.beamColors
+        let beamColors = selectedGrade.beamColors
         let correctColor = beamColors[enemy.beamIndex % beamColors.count]
 
         let correctPos = enemy.position
@@ -479,11 +487,11 @@ final class GameScene: SKScene, WaveManagerDelegate {
     }
 
     private func showZoneFeedback(zone: ProximityZone, points: Int, at position: CGPoint) {
-        let isCadet = selectedAgeGroup == .cadet
+        let isYoung = selectedGrade.rawValue < 2
 
         let zoneLabel = SKLabelNode(text: zone.displayLabel)
         zoneLabel.fontName = "AvenirNext-Heavy"
-        zoneLabel.fontSize = isCadet ? 28 : 24
+        zoneLabel.fontSize = isYoung ? 28 : 24
         zoneLabel.fontColor = zone.color
         zoneLabel.verticalAlignmentMode = .center
         zoneLabel.horizontalAlignmentMode = .center
@@ -493,7 +501,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         let pointsLabel = SKLabelNode(text: "+\(points)")
         pointsLabel.fontName = "AvenirNext-Bold"
-        pointsLabel.fontSize = isCadet ? 22 : 18
+        pointsLabel.fontSize = isYoung ? 22 : 18
         pointsLabel.fontColor = zone.color
         pointsLabel.verticalAlignmentMode = .center
         pointsLabel.horizontalAlignmentMode = .center
@@ -517,7 +525,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         enemy.showDamage()
         enemy.bounceBack()
 
-        let wrongExplosion = Explosion.wrongExplosion(at: enemy.position, ageGroup: selectedAgeGroup)
+        let wrongExplosion = Explosion.wrongExplosion(at: enemy.position, grade: selectedGrade)
         addChild(wrongExplosion)
 
         hud.flashScreenEdge(color: .red)
@@ -637,11 +645,12 @@ final class GameScene: SKScene, WaveManagerDelegate {
         hud.problemDisplay.showProblem(problem.question, topic: topicName)
         hud.problemDisplay.startPulse()
 
-        let topics = MathTopic.topics(for: selectedAgeGroup, level: gameManager.currentLevel)
-        hud.updateLevel(gameManager.currentLevel, topic: topics.first?.displayName ?? "")
+        if let gradeLevel = gameManager.currentGradeLevel {
+            hud.updateLevel(gameManager.currentLevel, topic: gradeLevel.topic.displayName)
+        }
 
         spawnEnemies(for: problem)
-        enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: selectedAgeGroup)
+        enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: selectedGrade)
     }
 
     func waveManagerCorrectAnswer() {
@@ -709,7 +718,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         touchControls.switchToBossMode()
 
         let boss = SectorSentinel()
-        boss.setup(ageGroup: selectedAgeGroup, sceneSize: size)
+        boss.setup(grade: selectedGrade, sceneSize: size)
         boss.zPosition = 25
         addChild(boss)
         bossNode = boss
@@ -735,15 +744,15 @@ final class GameScene: SKScene, WaveManagerDelegate {
     private func spawnEnemies(for problem: MathProblem) {
         clearAllEnemies()
 
-        let beamCount = selectedAgeGroup.beamCount
+        let beamCount = selectedGrade.beamCount
         let answers = problem.answers(for: beamCount)
-        let colors = selectedAgeGroup.beamColors
+        let colors = selectedGrade.beamColors
 
         for i in 0..<beamCount {
             let isCorrect = answers[i] == problem.correctAnswer
             let color = colors[i % colors.count]
 
-            let enemy = NumberEnemy(answer: answers[i], beam: i, isCorrect: isCorrect, ageGroup: selectedAgeGroup, beamColor: color)
+            let enemy = NumberEnemy(answer: answers[i], beam: i, isCorrect: isCorrect, grade: selectedGrade, beamColor: color)
             enemy.position = CGPoint(
                 x: beamGrid.beamXAtY(i, y: enemyStartY),
                 y: enemyStartY
@@ -895,7 +904,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
                 let transition = SKTransition.crossFade(withDuration: 0.8)
                 let gameOverScene = GameOverScene(size: self.size)
                 gameOverScene.scaleMode = .resizeFill
-                gameOverScene.selectedAgeGroup = self.selectedAgeGroup
+                gameOverScene.selectedGrade = self.selectedGrade
                 gameOverScene.bossDestroyedPlayer = true
                 self.view?.presentScene(gameOverScene, transition: transition)
             }
@@ -922,7 +931,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         let transition = SKTransition.crossFade(withDuration: 0.8)
         let levelClear = LevelClearScene(size: size)
         levelClear.scaleMode = .resizeFill
-        levelClear.selectedAgeGroup = selectedAgeGroup
+        levelClear.selectedGrade = selectedGrade
         view?.presentScene(levelClear, transition: transition)
     }
 
@@ -937,7 +946,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
                 let transition = SKTransition.crossFade(withDuration: 0.8)
                 let gameOverScene = GameOverScene(size: self.size)
                 gameOverScene.scaleMode = .resizeFill
-                gameOverScene.selectedAgeGroup = self.selectedAgeGroup
+                gameOverScene.selectedGrade = self.selectedGrade
                 self.view?.presentScene(gameOverScene, transition: transition)
             }
         ]))

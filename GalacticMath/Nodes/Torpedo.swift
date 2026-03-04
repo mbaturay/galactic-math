@@ -3,7 +3,7 @@ import SpriteKit
 final class Torpedo: SKNode {
     var beamIndex: Int = 0
 
-    func setup(ageGroup: AgeGroup) {
+    func setup(grade: Grade) {
         let body = SKShapeNode(ellipseOf: CGSize(width: 10, height: 18))
         body.fillColor = SKColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0)
         body.strokeColor = SKColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0)

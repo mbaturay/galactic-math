@@ -6,7 +6,7 @@ final class TouchControlsNode: SKNode {
     private var actionLabel: SKLabelNode!
 
     private var sceneSize: CGSize = .zero
-    private var ageGroup: AgeGroup = .cadet
+    private var grade: Grade = .kindergarten
     private var isBossMode = false
     private var buttonRect: CGRect = .zero
 
@@ -16,9 +16,9 @@ final class TouchControlsNode: SKNode {
     var onTorpedo: (() -> Void)?
     var onBackTap: (() -> Void)?
 
-    func setup(size: CGSize, ageGroup: AgeGroup) {
+    func setup(size: CGSize, grade: Grade) {
         self.sceneSize = size
-        self.ageGroup = ageGroup
+        self.grade = grade
         isUserInteractionEnabled = true
         removeAllChildren()
         zPosition = 500
@@ -44,14 +44,14 @@ final class TouchControlsNode: SKNode {
         addChild(actionButton)
 
         actionBg = SKShapeNode(rectOf: CGSize(width: btnWidth, height: btnHeight), cornerRadius: 14)
-        actionBg.fillColor = ageGroup.primaryColor.withAlphaComponent(0.25)
-        actionBg.strokeColor = ageGroup.primaryColor.withAlphaComponent(0.6)
+        actionBg.fillColor = grade.primaryColor.withAlphaComponent(0.25)
+        actionBg.strokeColor = grade.primaryColor.withAlphaComponent(0.6)
         actionBg.lineWidth = 2.0
         actionButton.addChild(actionBg)
 
         actionLabel = SKLabelNode(text: "FIRE")
         actionLabel.fontName = "AvenirNext-Bold"
-        actionLabel.fontSize = ageGroup == .cadet ? 22 : 20
+        actionLabel.fontSize = grade.rawValue < 2 ? 22 : 20
         actionLabel.fontColor = .white
         actionLabel.verticalAlignmentMode = .center
         actionButton.addChild(actionLabel)
@@ -75,8 +75,8 @@ final class TouchControlsNode: SKNode {
 
     func switchToNormalMode() {
         isBossMode = false
-        actionBg.fillColor = ageGroup.primaryColor.withAlphaComponent(0.25)
-        actionBg.strokeColor = ageGroup.primaryColor.withAlphaComponent(0.6)
+        actionBg.fillColor = grade.primaryColor.withAlphaComponent(0.25)
+        actionBg.strokeColor = grade.primaryColor.withAlphaComponent(0.6)
         actionLabel.text = "FIRE"
     }
 

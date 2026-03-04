@@ -9,7 +9,7 @@ final class HUDNode: SKNode {
 
     private var playerNameLabel: SKLabelNode!
     private var pauseButton: SKNode!
-    private var ageGroup: AgeGroup = .cadet
+    private var grade: Grade = .kindergarten
     private var sceneSize: CGSize = .zero
 
     // Message queue — never overlap
@@ -19,17 +19,9 @@ final class HUDNode: SKNode {
     var problemDisplay: ProblemDisplayNode!
     var onPauseTapped: (() -> Void)?
 
-    static func animalEmoji(for ageGroup: AgeGroup) -> String {
-        switch ageGroup {
-        case .cadet: return "🐱"
-        case .pilot: return "🐶"
-        case .ace:   return "🦊"
-        }
-    }
-
-    func setup(size: CGSize, ageGroup: AgeGroup, safeAreaTop: CGFloat = 0) {
+    func setup(size: CGSize, grade: Grade, safeAreaTop: CGFloat = 0) {
         self.sceneSize = size
-        self.ageGroup = ageGroup
+        self.grade = grade
         removeAllChildren()
         messageQueue.removeAll()
         isShowingMessage = false
@@ -74,7 +66,7 @@ final class HUDNode: SKNode {
         playerNameLabel.position = CGPoint(x: midX, y: barCenterY + 10)
         addChild(playerNameLabel)
 
-        livesLabel = SKLabelNode(text: "❤️ \(ageGroup.lives)")
+        livesLabel = SKLabelNode(text: "❤️ \(grade.lives)")
         livesLabel.fontName = "AvenirNext-Bold"
         livesLabel.fontSize = 14
         livesLabel.fontColor = .white
@@ -96,7 +88,7 @@ final class HUDNode: SKNode {
         levelLabel = SKLabelNode(text: "Level 1")
         levelLabel.fontName = "AvenirNext-Medium"
         levelLabel.fontSize = 11
-        levelLabel.fontColor = ageGroup.primaryColor
+        levelLabel.fontColor = grade.primaryColor
         levelLabel.horizontalAlignmentMode = .right
         levelLabel.verticalAlignmentMode = .center
         levelLabel.position = CGPoint(x: size.width - 15, y: barCenterY - 12)
@@ -110,7 +102,7 @@ final class HUDNode: SKNode {
 
         // === QUESTION PANEL below bar (top-anchored) ===
         problemDisplay = ProblemDisplayNode()
-        problemDisplay.setup(ageGroup: ageGroup, width: size.width)
+        problemDisplay.setup(grade: grade, width: size.width)
         problemDisplay.position = CGPoint(x: size.width / 2, y: barCenterY - barHeight / 2 - 4)
         addChild(problemDisplay)
 
@@ -124,14 +116,14 @@ final class HUDNode: SKNode {
         }
         beamIndicators.removeAll()
 
-        let beamCount = ageGroup.beamCount
+        let beamCount = grade.beamCount
         let spacing: CGFloat = 30
         let startX = sceneSize.width / 2 - CGFloat(beamCount - 1) * spacing / 2
         let indicatorY: CGFloat = 100
 
         for i in 0..<beamCount {
             let dot = SKShapeNode(circleOfRadius: 5)
-            let colors = ageGroup.beamColors
+            let colors = grade.beamColors
             dot.fillColor = colors[i % colors.count].withAlphaComponent(0.5)
             dot.strokeColor = colors[i % colors.count]
             dot.lineWidth = 1.0
@@ -164,7 +156,7 @@ final class HUDNode: SKNode {
 
     func updateActiveBeam(_ beam: Int) {
         for (i, dot) in beamIndicators.enumerated() {
-            let colors = ageGroup.beamColors
+            let colors = grade.beamColors
             if i == beam {
                 dot.fillColor = colors[i % colors.count]
                 dot.setScale(1.3)
@@ -189,7 +181,7 @@ final class HUDNode: SKNode {
 
         let msg = SKLabelNode(text: item.text)
         msg.fontName = "AvenirNext-Bold"
-        msg.fontSize = ageGroup == .cadet ? 32 : 26
+        msg.fontSize = grade.rawValue < 2 ? 32 : 26
         msg.fontColor = item.color
         msg.numberOfLines = 0
         msg.preferredMaxLayoutWidth = sceneSize.width - 40

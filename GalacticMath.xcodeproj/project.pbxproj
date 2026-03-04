@@ -31,9 +31,16 @@
 		A10000022 /* ProgressManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000022 /* ProgressManager.swift */; };
 		A10000023 /* AdaptiveDifficulty.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000023 /* AdaptiveDifficulty.swift */; };
 		A10000024 /* MathProblem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000024 /* MathProblem.swift */; };
-		A10000025 /* AgeGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000025 /* AgeGroup.swift */; };
 		A10000026 /* MathTopic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000026 /* MathTopic.swift */; };
 		A10000027 /* PlayerProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000027 /* PlayerProgress.swift */; };
+		A10000033 /* Grade.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000034 /* Grade.swift */; };
+		A10000034 /* Curriculum.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000035 /* Curriculum.swift */; };
+		A10000035 /* Badge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000036 /* Badge.swift */; };
+		A10000036 /* BadgeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000037 /* BadgeManager.swift */; };
+		A10000037 /* GradeSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000038 /* GradeSelectScene.swift */; };
+		A10000038 /* TopicSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000039 /* TopicSelectScene.swift */; };
+		A10000039 /* BadgeRoomScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000040 /* BadgeRoomScene.swift */; };
+		A10000040 /* BadgeCelebrationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000041 /* BadgeCelebrationScene.swift */; };
 		A10000028 /* HUDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000028 /* HUDNode.swift */; };
 		A10000029 /* TouchControlsNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000029 /* TouchControlsNode.swift */; };
 		A10000030 /* ProblemDisplayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000030 /* ProblemDisplayNode.swift */; };
@@ -66,9 +73,16 @@
 		B10000022 /* ProgressManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressManager.swift; sourceTree = "<group>"; };
 		B10000023 /* AdaptiveDifficulty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveDifficulty.swift; sourceTree = "<group>"; };
 		B10000024 /* MathProblem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathProblem.swift; sourceTree = "<group>"; };
-		B10000025 /* AgeGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGroup.swift; sourceTree = "<group>"; };
 		B10000026 /* MathTopic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathTopic.swift; sourceTree = "<group>"; };
 		B10000027 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
+		B10000034 /* Grade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Grade.swift; sourceTree = "<group>"; };
+		B10000035 /* Curriculum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curriculum.swift; sourceTree = "<group>"; };
+		B10000036 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
+		B10000037 /* BadgeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeManager.swift; sourceTree = "<group>"; };
+		B10000038 /* GradeSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradeSelectScene.swift; sourceTree = "<group>"; };
+		B10000039 /* TopicSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopicSelectScene.swift; sourceTree = "<group>"; };
+		B10000040 /* BadgeRoomScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeRoomScene.swift; sourceTree = "<group>"; };
+		B10000041 /* BadgeCelebrationScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeCelebrationScene.swift; sourceTree = "<group>"; };
 		B10000028 /* HUDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDNode.swift; sourceTree = "<group>"; };
 		B10000029 /* TouchControlsNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchControlsNode.swift; sourceTree = "<group>"; };
 		B10000030 /* ProblemDisplayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProblemDisplayNode.swift; sourceTree = "<group>"; };
@@ -118,9 +132,13 @@
 			children = (
 				B10000004 /* TitleScene.swift */,
 				B10000005 /* ProfileSelectScene.swift */,
+				B10000038 /* GradeSelectScene.swift */,
+				B10000039 /* TopicSelectScene.swift */,
 				B10000006 /* GameScene.swift */,
 				B10000007 /* LevelClearScene.swift */,
 				B10000008 /* GameOverScene.swift */,
+				B10000040 /* BadgeRoomScene.swift */,
+				B10000041 /* BadgeCelebrationScene.swift */,
 			);
 			path = Scenes;
 			sourceTree = "<group>";
@@ -151,6 +169,7 @@
 				B10000021 /* AudioManager.swift */,
 				B10000022 /* ProgressManager.swift */,
 				B10000023 /* AdaptiveDifficulty.swift */,
+				B10000037 /* BadgeManager.swift */,
 			);
 			path = Systems;
 			sourceTree = "<group>";
@@ -159,7 +178,9 @@
 			isa = PBXGroup;
 			children = (
 				B10000024 /* MathProblem.swift */,
-				B10000025 /* AgeGroup.swift */,
+				B10000034 /* Grade.swift */,
+				B10000035 /* Curriculum.swift */,
+				B10000036 /* Badge.swift */,
 				B10000026 /* MathTopic.swift */,
 				B10000027 /* PlayerProgress.swift */,
 			);
@@ -277,7 +298,14 @@
 				A10000022 /* ProgressManager.swift in Sources */,
 				A10000023 /* AdaptiveDifficulty.swift in Sources */,
 				A10000024 /* MathProblem.swift in Sources */,
-				A10000025 /* AgeGroup.swift in Sources */,
+				A10000033 /* Grade.swift in Sources */,
+				A10000034 /* Curriculum.swift in Sources */,
+				A10000035 /* Badge.swift in Sources */,
+				A10000036 /* BadgeManager.swift in Sources */,
+				A10000037 /* GradeSelectScene.swift in Sources */,
+				A10000038 /* TopicSelectScene.swift in Sources */,
+				A10000039 /* BadgeRoomScene.swift in Sources */,
+				A10000040 /* BadgeCelebrationScene.swift in Sources */,
 				A10000026 /* MathTopic.swift in Sources */,
 				A10000027 /* PlayerProgress.swift in Sources */,
 				A10000028 /* HUDNode.swift in Sources */,

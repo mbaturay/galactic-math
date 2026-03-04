@@ -3,10 +3,11 @@ import Foundation
 final class GameManager {
     static let shared = GameManager()
     static let maxSlots = 4
-    static let avatarOptions = ["🚀", "🛸", "⭐", "🌟", "🌍"]
+    static let avatarOptions = ["\u{1F680}", "\u{1F6F8}", "\u{2B50}", "\u{1F31F}", "\u{1F30D}"]
 
-    var ageGroup: AgeGroup = .cadet
-    var currentLevel: Int = 1
+    var currentGrade: Grade = .kindergarten
+    var currentLevelNumber: Int = 1
+    var currentLevel: Int { return currentLevelNumber }
     var score: Int = 0
     var lives: Int = 5
     var correctStreak: Int = 0
@@ -16,6 +17,10 @@ final class GameManager {
     var problemsPerLevel: Int = 15
     var currentSlotIndex: Int?
 
+    var sessionIncredibleShots: Int = 0
+    var consecutiveIncredibleShots: Int = 0
+    var consecutiveWrongAnswers: Int = 0
+
     private let oldProfilesKey = "galacticmath_profiles"
 
     var slots: [Int: PlayerProfile] = [:]
@@ -24,8 +29,11 @@ final class GameManager {
         return slots[idx]
     }
 
+    var currentGradeLevel: GradeLevel? {
+        return Curriculum.level(for: currentGrade, levelNumber: currentLevelNumber)
+    }
+
     private init() {
-        migrateOldProfiles()
         loadAllSlots()
     }
 
@@ -62,8 +70,8 @@ final class GameManager {
 
     // MARK: - Profile Management
 
-    func createProfile(slotIndex: Int, name: String, avatar: String, ageGroup: AgeGroup) {
-        let profile = PlayerProfile(slotIndex: slotIndex, name: name, avatar: avatar, ageGroup: ageGroup)
+    func createProfile(slotIndex: Int, name: String, avatar: String, grade: Grade) {
+        let profile = PlayerProfile(slotIndex: slotIndex, name: name, avatar: avatar, grade: grade)
         slots[slotIndex] = profile
         saveSlot(slotIndex)
         selectSlot(slotIndex)
@@ -72,8 +80,10 @@ final class GameManager {
     func selectSlot(_ index: Int) {
         guard slots[index] != nil else { return }
         currentSlotIndex = index
-        ageGroup = slots[index]!.ageGroup
+        currentGrade = slots[index]!.currentGrade
+        currentLevelNumber = slots[index]!.currentLevel(for: currentGrade)
         slots[index]!.lastPlayedDate = Date()
+        updateConsecutiveDays(slotIndex: index)
         saveSlot(index)
     }
 
@@ -91,80 +101,61 @@ final class GameManager {
         return nil
     }
 
-    // MARK: - Legacy Migration
+    private func updateConsecutiveDays(slotIndex: Int) {
+        guard slots[slotIndex] != nil else { return }
+        let today = PlayerProfile.todayString()
+        let lastDay = slots[slotIndex]!.lastPlayedDay
 
-    private struct LegacyPlayerProfile: Codable {
-        var name: String
-        var ageGroup: AgeGroup
-        var avatarIndex: Int
-        var currentLevel: Int
-        var highScore: Int
-        var totalCorrect: Int
-        var totalAttempted: Int
-        var topicAccuracy: [String: TopicStats]
-        var totalPlayTime: TimeInterval
-    }
-
-    private func migrateOldProfiles() {
-        guard let data = UserDefaults.standard.data(forKey: oldProfilesKey),
-              let oldProfiles = try? JSONDecoder().decode([LegacyPlayerProfile].self, from: data) else {
-            return
-        }
-
-        let avatars = GameManager.avatarOptions
-        for (i, old) in oldProfiles.prefix(GameManager.maxSlots).enumerated() {
-            // Skip if slot already has data
-            if UserDefaults.standard.data(forKey: GameManager.slotKey(i)) != nil { continue }
-
-            var profile = PlayerProfile(
-                slotIndex: i,
-                name: old.name,
-                avatar: avatars[old.avatarIndex % avatars.count],
-                ageGroup: old.ageGroup
-            )
-            profile.currentLevel = old.currentLevel
-            profile.highScore = old.highScore
-            profile.totalCorrect = old.totalCorrect
-            profile.totalAttempted = old.totalAttempted
-            profile.topicAccuracy = old.topicAccuracy
-            profile.totalPlayTime = old.totalPlayTime
-
-            if let encoded = try? JSONEncoder().encode(profile) {
-                UserDefaults.standard.set(encoded, forKey: GameManager.slotKey(i))
+        if today != lastDay {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            if let lastDate = formatter.date(from: lastDay),
+               let todayDate = formatter.date(from: today) {
+                let diff = Calendar.current.dateComponents([.day], from: lastDate, to: todayDate).day ?? 0
+                if diff == 1 {
+                    slots[slotIndex]!.consecutiveDays += 1
+                } else if diff > 1 {
+                    slots[slotIndex]!.consecutiveDays = 1
+                }
             }
+            slots[slotIndex]!.lastPlayedDay = today
         }
-
-        UserDefaults.standard.removeObject(forKey: oldProfilesKey)
     }
 
     // MARK: - Game State
 
     func resetToMenu() {
-        currentLevel = 1
         score = 0
-        lives = ageGroup.lives
+        lives = currentGrade.lives
         correctStreak = 0
         totalCorrect = 0
         totalAttempted = 0
         problemsThisLevel = 0
+        sessionIncredibleShots = 0
+        consecutiveIncredibleShots = 0
+        consecutiveWrongAnswers = 0
         AdaptiveDifficulty.shared.reset()
-
-        if let idx = currentSlotIndex, slots[idx] != nil {
-            slots[idx]!.currentLevel = 1
-            saveSlot(idx)
-        }
     }
 
-    func startNewGame(ageGroup: AgeGroup) {
-        self.ageGroup = ageGroup
-        self.currentLevel = 1
+    func startNewGame(grade: Grade, levelNumber: Int = 0) {
+        self.currentGrade = grade
+        self.currentLevelNumber = levelNumber > 0 ? levelNumber : (currentProfile?.currentLevel(for: grade) ?? 1)
         self.score = 0
-        self.lives = ageGroup.lives
+        self.lives = grade.lives
         self.correctStreak = 0
         self.totalCorrect = 0
         self.totalAttempted = 0
         self.problemsThisLevel = 0
+        self.sessionIncredibleShots = 0
+        self.consecutiveIncredibleShots = 0
+        self.consecutiveWrongAnswers = 0
         AdaptiveDifficulty.shared.reset()
+
+        if let idx = currentSlotIndex, slots[idx] != nil {
+            slots[idx]!.currentGrade = grade
+            slots[idx]!.sessionIncredibleShots = 0
+            saveSlot(idx)
+        }
     }
 
     func correctAnswer(timeTaken: TimeInterval, points: Int) {
@@ -172,27 +163,31 @@ final class GameManager {
         totalAttempted += 1
         problemsThisLevel += 1
         correctStreak += 1
+        consecutiveWrongAnswers = 0
 
         score += points
 
         AdaptiveDifficulty.shared.recordAnswer(correct: true, time: timeTaken)
 
         if let idx = currentSlotIndex, slots[idx] != nil {
-            slots[idx]!.totalCorrect += 1
-            slots[idx]!.totalAttempted += 1
-            if score > slots[idx]!.highScore {
-                slots[idx]!.highScore = score
+            // Update streak tracking
+            slots[idx]!.currentStreak = correctStreak
+            if correctStreak > slots[idx]!.longestStreak {
+                slots[idx]!.longestStreak = correctStreak
+            }
+
+            // Update high score for grade
+            let gradeKey = currentGrade.rawValue
+            let currentHigh = slots[idx]!.highScorePerGrade[gradeKey] ?? 0
+            if score > currentHigh {
+                slots[idx]!.highScorePerGrade[gradeKey] = score
             }
             saveSlot(idx)
         }
     }
 
     var difficultyMultiplier: Double {
-        switch ageGroup {
-        case .cadet: return 1.0
-        case .pilot: return 1.2
-        case .ace: return 1.5
-        }
+        return currentGrade.difficultyMultiplier
     }
 
     func updateBestZone(_ zone: String) {
@@ -215,12 +210,14 @@ final class GameManager {
     func wrongAnswer() {
         totalAttempted += 1
         correctStreak = 0
+        consecutiveWrongAnswers += 1
+        consecutiveIncredibleShots = 0
         lives -= 1
 
         AdaptiveDifficulty.shared.recordAnswer(correct: false, time: 5.0)
 
         if let idx = currentSlotIndex, slots[idx] != nil {
-            slots[idx]!.totalAttempted += 1
+            slots[idx]!.currentStreak = 0
             saveSlot(idx)
         }
     }
@@ -233,11 +230,38 @@ final class GameManager {
         return problemsThisLevel >= problemsPerLevel
     }
 
-    func advanceLevel() {
-        if currentLevel < ageGroup.maxLevel {
-            currentLevel += 1
+    func advanceLevel() -> [Badge] {
+        var earnedBadges: [Badge] = []
+
+        if let idx = currentSlotIndex, slots[idx] != nil {
+            let completedLevel = currentLevelNumber
+
+            // Check badges
+            earnedBadges = BadgeManager.shared.checkBadges(
+                profile: &slots[idx]!,
+                grade: currentGrade,
+                levelCompleted: completedLevel,
+                accuracy: accuracy,
+                sessionIncredibleShots: sessionIncredibleShots,
+                currentStreak: correctStreak
+            )
+
+            // Advance level within grade
+            if currentLevelNumber < currentGrade.maxLevel {
+                currentLevelNumber += 1
+            }
+
+            // Save level progress
+            slots[idx]!.currentLevelPerGrade[currentGrade.rawValue] = currentLevelNumber
+            saveSlot(idx)
+        } else {
+            if currentLevelNumber < currentGrade.maxLevel {
+                currentLevelNumber += 1
+            }
         }
+
         problemsThisLevel = 0
+        return earnedBadges
     }
 
     func isGameOver() -> Bool {
@@ -258,14 +282,43 @@ final class GameManager {
     func recordTopicResult(topic: MathTopic, correct: Bool, time: TimeInterval) {
         guard let idx = currentSlotIndex, slots[idx] != nil else { return }
         let key = topic.rawValue
-        var stats = slots[idx]!.topicAccuracy[key] ?? TopicStats()
+        var stats = slots[idx]!.accuracyPerTopic[key] ?? TopicStats()
         stats.total += 1
         if correct { stats.correct += 1 }
-        stats.responseTimes.append(time)
-        if stats.responseTimes.count > 50 {
-            stats.responseTimes.removeFirst()
-        }
-        slots[idx]!.topicAccuracy[key] = stats
+        slots[idx]!.accuracyPerTopic[key] = stats
         saveSlot(idx)
+    }
+
+    // MARK: - Incredible Shot Tracking
+
+    func recordIncredibleShot() {
+        sessionIncredibleShots += 1
+        consecutiveIncredibleShots += 1
+
+        if let idx = currentSlotIndex, slots[idx] != nil {
+            slots[idx]!.sessionIncredibleShots = sessionIncredibleShots
+            slots[idx]!.totalIncredibleShots += 1
+
+            // Check sharpshooter: 5 incredible in a row
+            if consecutiveIncredibleShots >= 5 && !slots[idx]!.hasBadge(.sharpshooter) {
+                slots[idx]!.badgesEarned[Badge.sharpshooter.rawValue] = Date()
+            }
+            saveSlot(idx)
+        }
+    }
+
+    func resetIncredibleStreak() {
+        consecutiveIncredibleShots = 0
+    }
+
+    // MARK: - Comeback Detection
+
+    func checkComeback() -> Badge? {
+        guard consecutiveWrongAnswers >= 3 else { return nil }
+        guard let idx = currentSlotIndex, slots[idx] != nil else { return nil }
+        return BadgeManager.shared.checkRealtimeBadge(
+            profile: &slots[idx]!,
+            event: .comebackAnswer
+        )
     }
 }

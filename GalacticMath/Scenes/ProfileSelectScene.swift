@@ -8,7 +8,6 @@ final class ProfileSelectScene: SKScene {
         case slotGrid
         case creatingName
         case creatingAvatar
-        case creatingAgeGroup
         case editingProfile
         case actionMenu
         case deleteConfirm
@@ -41,7 +40,7 @@ final class ProfileSelectScene: SKScene {
         backgroundColor = SKColor(red: 0.03, green: 0.01, blue: 0.1, alpha: 1.0)
 
         starField = StarField()
-        starField.setup(size: size, ageGroup: .pilot)
+        starField.setup(size: size, grade: .grade3)
         addChild(starField)
 
         showSlotGrid()
@@ -73,7 +72,7 @@ final class ProfileSelectScene: SKScene {
         backBg.strokeColor = SKColor(white: 0.4, alpha: 0.5)
         backBtn.addChild(backBg)
 
-        let backLabel = SKLabelNode(text: "◀ Back")
+        let backLabel = SKLabelNode(text: "\u{25C0} Back")
         backLabel.fontName = "AvenirNext-Bold"
         backLabel.fontSize = 14
         backLabel.fontColor = SKColor(white: 0.7, alpha: 0.9)
@@ -130,9 +129,10 @@ final class ProfileSelectScene: SKScene {
     private func createOccupiedSlot(profile: PlayerProfile, slotSize: CGSize) -> SKNode {
         let container = SKNode()
 
+        let grade = profile.currentGrade
         let bg = SKShapeNode(rectOf: slotSize, cornerRadius: 16)
-        bg.fillColor = profile.ageGroup.primaryColor.withAlphaComponent(0.12)
-        bg.strokeColor = profile.ageGroup.primaryColor.withAlphaComponent(0.7)
+        bg.fillColor = grade.primaryColor.withAlphaComponent(0.12)
+        bg.strokeColor = grade.primaryColor.withAlphaComponent(0.7)
         bg.lineWidth = 2.5
         bg.glowWidth = 2.0
         container.addChild(bg)
@@ -153,17 +153,19 @@ final class ProfileSelectScene: SKScene {
         nameLabel.position = CGPoint(x: 0, y: -slotSize.height * 0.05)
         container.addChild(nameLabel)
 
-        // Age badge
-        let ageBadge = SKLabelNode(text: profile.ageGroup.shortName)
-        ageBadge.fontName = "AvenirNext-Medium"
-        ageBadge.fontSize = 10
-        ageBadge.fontColor = profile.ageGroup.primaryColor
-        ageBadge.verticalAlignmentMode = .center
-        ageBadge.position = CGPoint(x: 0, y: -slotSize.height * 0.18)
-        container.addChild(ageBadge)
+        // Grade badge
+        let gradeBadge = SKLabelNode(text: grade.displayName)
+        gradeBadge.fontName = "AvenirNext-Medium"
+        gradeBadge.fontSize = 10
+        gradeBadge.fontColor = grade.primaryColor
+        gradeBadge.verticalAlignmentMode = .center
+        gradeBadge.position = CGPoint(x: 0, y: -slotSize.height * 0.18)
+        container.addChild(gradeBadge)
 
         // Level + high score
-        let statsText = "Lv.\(profile.currentLevel)  Hi: \(profile.highScore)"
+        let lvl = profile.currentLevel(for: grade)
+        let hi = profile.highScore(for: grade)
+        let statsText = "Lv.\(lvl)  Hi: \(hi)"
         let statsLabel = SKLabelNode(text: statsText)
         statsLabel.fontName = "AvenirNext-Regular"
         statsLabel.fontSize = 10
@@ -264,8 +266,7 @@ final class ProfileSelectScene: SKScene {
     }
 
     /// Shared keyboard builder for name entry and edit profile screens.
-    /// Layout: 4 rows of 7 letters (VWXYZ on row 4), then row 5 with ⌫ and Next.
-    private func buildLetterKeyboard(startY: CGFloat, nextButtonName: String, nextButtonLabel: String = "Next →") {
+    private func buildLetterKeyboard(startY: CGFloat, nextButtonName: String, nextButtonLabel: String = "Next \u{2192}") {
         let rows: [[Character]] = [
             ["A","B","C","D","E","F","G"],
             ["H","I","J","K","L","M","N"],
@@ -279,7 +280,6 @@ final class ProfileSelectScene: SKScene {
         let gridStartX = (size.width - totalW) / 2 + btnSize / 2
 
         for (row, letters) in rows.enumerated() {
-            // Centre shorter rows
             let rowOffsetX: CGFloat
             if letters.count < cols {
                 rowOffsetX = CGFloat(cols - letters.count) * (btnSize + spacing) / 2
@@ -313,7 +313,7 @@ final class ProfileSelectScene: SKScene {
             }
         }
 
-        // Row 5: ⌫ Backspace and Next →
+        // Row 5: Delete and Next
         let row5Y = startY - 4 * (btnSize + spacing)
         let wideWidth = (totalW - spacing) / 2
 
@@ -329,7 +329,7 @@ final class ProfileSelectScene: SKScene {
         delBg.lineWidth = 1
         delBtn.addChild(delBg)
 
-        let delLabel = SKLabelNode(text: "⌫ Delete")
+        let delLabel = SKLabelNode(text: "\u{232B} Delete")
         delLabel.fontName = "AvenirNext-Bold"
         delLabel.fontSize = btnSize * 0.38
         delLabel.fontColor = .white
@@ -337,7 +337,7 @@ final class ProfileSelectScene: SKScene {
         delBtn.addChild(delLabel)
         addChild(delBtn)
 
-        // Next button (green, prominent)
+        // Next button
         let nextBtn = SKNode()
         nextBtn.position = CGPoint(x: size.width / 2 + wideWidth / 2 + spacing / 2, y: row5Y)
         nextBtn.zPosition = 10
@@ -422,25 +422,26 @@ final class ProfileSelectScene: SKScene {
             addChild(btn)
         }
 
-        // Next button
-        let nextBtn = SKNode()
-        nextBtn.position = CGPoint(x: size.width / 2, y: size.height * 0.40)
-        nextBtn.zPosition = 10
-        nextBtn.name = "nextFromAvatar"
+        // Create button — final step, creates profile and goes to grade select
+        let createBtn = SKNode()
+        createBtn.position = CGPoint(x: size.width / 2, y: size.height * 0.40)
+        createBtn.zPosition = 10
+        createBtn.name = "createProfile"
 
-        let nextBg = SKShapeNode(rectOf: CGSize(width: 140, height: 44), cornerRadius: 12)
-        nextBg.fillColor = SKColor(red: 0.1, green: 0.3, blue: 0.15, alpha: 0.8)
-        nextBg.strokeColor = SKColor(red: 0.2, green: 0.6, blue: 0.3, alpha: 0.6)
-        nextBg.lineWidth = 2
-        nextBtn.addChild(nextBg)
+        let createBg = SKShapeNode(rectOf: CGSize(width: 160, height: 44), cornerRadius: 12)
+        createBg.fillColor = SKColor(red: 0.1, green: 0.5, blue: 0.2, alpha: 0.9)
+        createBg.strokeColor = SKColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 0.8)
+        createBg.lineWidth = 2
+        createBg.glowWidth = 2
+        createBtn.addChild(createBg)
 
-        let nextLabel = SKLabelNode(text: "Next →")
-        nextLabel.fontName = "AvenirNext-Bold"
-        nextLabel.fontSize = 18
-        nextLabel.fontColor = .white
-        nextLabel.verticalAlignmentMode = .center
-        nextBtn.addChild(nextLabel)
-        addChild(nextBtn)
+        let createLabel = SKLabelNode(text: "CREATE \u{2192}")
+        createLabel.fontName = "AvenirNext-Bold"
+        createLabel.fontSize = 18
+        createLabel.fontColor = .white
+        createLabel.verticalAlignmentMode = .center
+        createBtn.addChild(createLabel)
+        addChild(createBtn)
 
         addBackButton(action: "backToName")
     }
@@ -463,58 +464,6 @@ final class ProfileSelectScene: SKScene {
                 }
             }
         }
-    }
-
-    // MARK: - Age Group Picker
-
-    private func showAgeGroupPicker() {
-        mode = .creatingAgeGroup
-        clearContent()
-
-        let title = SKLabelNode(text: "Choose Difficulty")
-        title.fontName = "AvenirNext-Bold"
-        title.fontSize = min(size.width * 0.07, 28)
-        title.fontColor = .white
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.88)
-        title.zPosition = 10
-        title.name = "content"
-        addChild(title)
-
-        // Preview name + avatar
-        let preview = SKLabelNode(text: "\(pendingAvatar) \(pendingName)")
-        preview.fontName = "AvenirNext-Heavy"
-        preview.fontSize = 22
-        preview.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        preview.position = CGPoint(x: size.width / 2, y: size.height * 0.80)
-        preview.zPosition = 10
-        preview.name = "content"
-        addChild(preview)
-
-        let groups: [(AgeGroup, String, SKColor)] = [
-            (.cadet, "🚀 Space Cadet (4-7)", SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)),
-            (.pilot, "⭐ Star Pilot (7-10)", SKColor(red: 0.0, green: 0.7, blue: 1.0, alpha: 1.0)),
-            (.ace, "🌟 Ace Commander (10-13)", SKColor(red: 0.7, green: 0.3, blue: 1.0, alpha: 1.0))
-        ]
-
-        let buttonWidth = min(size.width * 0.85, 350.0)
-        let buttonHeight: CGFloat = 60
-        let spacing: CGFloat = 20
-        let totalHeight = CGFloat(groups.count) * buttonHeight + CGFloat(groups.count - 1) * spacing
-        let startY = size.height * 0.52 + totalHeight / 2 - buttonHeight / 2
-
-        for (i, group) in groups.enumerated() {
-            let y = startY - CGFloat(i) * (buttonHeight + spacing)
-            let btn = createStyledButton(
-                text: group.1,
-                color: group.2,
-                position: CGPoint(x: size.width / 2, y: y),
-                buttonSize: CGSize(width: buttonWidth, height: buttonHeight),
-                nodeName: "ageGroup_\(group.0.rawValue)"
-            )
-            addChild(btn)
-        }
-
-        addBackButton(action: "backToAvatar")
     }
 
     // MARK: - Action Menu (long press)
@@ -717,9 +666,9 @@ final class ProfileSelectScene: SKScene {
         nameDisplay.name = "nameDisplay"
         addChild(nameDisplay)
 
-        // Letter grid + delete (reuse shared builder — "saveEdit" as the next/save action)
+        // Letter grid + delete
         let kbStartY = size.height * 0.68
-        buildLetterKeyboard(startY: kbStartY, nextButtonName: "saveEdit", nextButtonLabel: "Save ✓")
+        buildLetterKeyboard(startY: kbStartY, nextButtonName: "saveEdit", nextButtonLabel: "Save \u{2713}")
 
         // Avatar row below keyboard
         let btnSize: CGFloat = min(size.width / 9, 42)
@@ -785,7 +734,7 @@ final class ProfileSelectScene: SKScene {
         backBg.strokeColor = SKColor(white: 0.4, alpha: 0.5)
         backBtn.addChild(backBg)
 
-        let backLabel = SKLabelNode(text: "◀ Back")
+        let backLabel = SKLabelNode(text: "\u{25C0} Back")
         backLabel.fontName = "AvenirNext-Bold"
         backLabel.fontSize = 14
         backLabel.fontColor = SKColor(white: 0.7, alpha: 0.9)
@@ -867,8 +816,6 @@ final class ProfileSelectScene: SKScene {
             handleNameEntryTap(location: location)
         case .creatingAvatar:
             handleAvatarPickerTap(location: location)
-        case .creatingAgeGroup:
-            handleAgeGroupTap(location: location)
         case .editingProfile:
             handleEditProfileTap(location: location)
         case .actionMenu:
@@ -916,10 +863,9 @@ final class ProfileSelectScene: SKScene {
             let dist = hypot(location.x - slotNode.position.x, location.y - slotNode.position.y)
             if dist < 90 {
                 if gm.slots[i] != nil {
-                    // Select and start game
+                    // Select profile and go to grade select
                     gm.selectSlot(i)
-                    gm.startNewGame(ageGroup: gm.ageGroup)
-                    transitionToGame()
+                    transitionToGradeSelect()
                 } else {
                     // Start creation flow
                     pendingSlotIndex = i
@@ -983,31 +929,11 @@ final class ProfileSelectScene: SKScene {
                 return
             }
 
-            if name == "nextFromAvatar" && dist < 60 {
-                showAgeGroupPicker()
-                return
-            }
-        }
-    }
-
-    private func handleAgeGroupTap(location: CGPoint) {
-        for child in children {
-            guard let name = child.name else { continue }
-            let dist = hypot(location.x - child.position.x, location.y - child.position.y)
-
-            if name == "backToAvatar" && dist < 50 {
-                showAvatarPicker()
-                return
-            }
-
-            if name.starts(with: "ageGroup_") && dist < 100 {
-                let groupName = String(name.dropFirst(9))
-                if let ageGroup = AgeGroup(rawValue: groupName) {
-                    let gm = GameManager.shared
-                    gm.createProfile(slotIndex: pendingSlotIndex, name: pendingName, avatar: pendingAvatar, ageGroup: ageGroup)
-                    gm.startNewGame(ageGroup: ageGroup)
-                    transitionToGame()
-                }
+            if name == "createProfile" && dist < 60 {
+                // Create profile with default kindergarten grade, then go to grade select
+                let gm = GameManager.shared
+                gm.createProfile(slotIndex: pendingSlotIndex, name: pendingName, avatar: pendingAvatar, grade: .kindergarten)
+                transitionToGradeSelect()
                 return
             }
         }
@@ -1106,12 +1032,11 @@ final class ProfileSelectScene: SKScene {
 
     // MARK: - Transitions
 
-    private func transitionToGame() {
-        let transition = SKTransition.doorway(withDuration: 1.0)
-        let gameScene = GameScene(size: size)
-        gameScene.scaleMode = .resizeFill
-        gameScene.selectedAgeGroup = GameManager.shared.ageGroup
-        view?.presentScene(gameScene, transition: transition)
+    private func transitionToGradeSelect() {
+        let transition = SKTransition.push(with: .left, duration: 0.5)
+        let gradeScene = GradeSelectScene(size: size)
+        gradeScene.scaleMode = .resizeFill
+        view?.presentScene(gradeScene, transition: transition)
     }
 
     override func update(_ currentTime: TimeInterval) {
