@@ -2,62 +2,86 @@ import SpriteKit
 
 final class SectorSentinel: SKNode {
     private var body: SKShapeNode!
+    private var glowCore: SKShapeNode!
     private var problemLabel: SKLabelNode!
     private var healthBar: SKShapeNode!
     private var ageGroup: AgeGroup = .cadet
+    private var crackNodes: [SKShapeNode] = []
     var problem: MathProblem?
+
+    private let bossRadius: CGFloat = 60
 
     func setup(ageGroup: AgeGroup, sceneSize: CGSize) {
         self.ageGroup = ageGroup
         removeAllChildren()
+        crackNodes.removeAll()
 
-        let stationSize = CGSize(width: 120, height: 80)
-
-        // Main body - hexagonal station
+        // Irregular polygon asteroid (10-14 vertices)
+        let vertexCount = Int.random(in: 10...14)
         let path = CGMutablePath()
-        let hw = stationSize.width / 2
-        let hh = stationSize.height / 2
-        path.move(to: CGPoint(x: -hw * 0.6, y: hh))
-        path.addLine(to: CGPoint(x: hw * 0.6, y: hh))
-        path.addLine(to: CGPoint(x: hw, y: 0))
-        path.addLine(to: CGPoint(x: hw * 0.6, y: -hh))
-        path.addLine(to: CGPoint(x: -hw * 0.6, y: -hh))
-        path.addLine(to: CGPoint(x: -hw, y: 0))
+
+        for i in 0..<vertexCount {
+            let angle = (CGFloat(i) / CGFloat(vertexCount)) * .pi * 2
+            let radius = bossRadius * CGFloat.random(in: 0.7...1.0)
+            let pt = CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
+            if i == 0 { path.move(to: pt) } else { path.addLine(to: pt) }
+        }
         path.closeSubpath()
 
         body = SKShapeNode(path: path)
-
-        switch ageGroup {
-        case .cadet:
-            body.fillColor = SKColor(red: 0.6, green: 0.2, blue: 0.0, alpha: 0.9)
-            body.strokeColor = SKColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1.0)
-        case .pilot:
-            body.fillColor = SKColor(red: 0.1, green: 0.2, blue: 0.5, alpha: 0.9)
-            body.strokeColor = SKColor(red: 0.0, green: 0.7, blue: 1.0, alpha: 1.0)
-        case .ace:
-            body.fillColor = SKColor(red: 0.3, green: 0.0, blue: 0.4, alpha: 0.9)
-            body.strokeColor = SKColor(red: 0.8, green: 0.3, blue: 1.0, alpha: 1.0)
-        }
-
+        body.fillColor = SKColor(white: 0.25, alpha: 1.0)
+        body.strokeColor = SKColor(white: 0.5, alpha: 0.8)
         body.lineWidth = 3.0
-        body.glowWidth = 5.0
+        body.glowWidth = 4.0
         addChild(body)
 
-        // Inner detail
-        let inner = SKShapeNode(circleOfRadius: 20)
-        inner.fillColor = body.strokeColor.withAlphaComponent(0.3)
-        inner.strokeColor = body.strokeColor
-        inner.lineWidth = 1.5
-        body.addChild(inner)
+        // Glowing core — age-group primary color
+        glowCore = SKShapeNode(circleOfRadius: 20)
+        let coreColor: SKColor
+        switch ageGroup {
+        case .cadet:
+            coreColor = SKColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1.0)
+        case .pilot:
+            coreColor = SKColor(red: 0.0, green: 0.7, blue: 1.0, alpha: 1.0)
+        case .ace:
+            coreColor = SKColor(red: 0.8, green: 0.3, blue: 1.0, alpha: 1.0)
+        }
+        glowCore.fillColor = coreColor.withAlphaComponent(0.4)
+        glowCore.strokeColor = coreColor.withAlphaComponent(0.6)
+        glowCore.lineWidth = 1.5
+        glowCore.glowWidth = 3.0
+        body.addChild(glowCore)
 
-        // Pulsing glow
+        // Core pulse
         let pulse = SKAction.sequence([
-            SKAction.run { [weak self] in self?.body.glowWidth = 8.0 },
-            SKAction.wait(forDuration: 0.5),
-            SKAction.run { [weak self] in self?.body.glowWidth = 4.0 },
-            SKAction.wait(forDuration: 0.5)
+            SKAction.scale(to: 1.2, duration: 0.8),
+            SKAction.scale(to: 0.8, duration: 0.8)
         ])
-        run(SKAction.repeatForever(pulse))
+        glowCore.run(SKAction.repeatForever(pulse))
+
+        // Surface cracks (4-5)
+        for _ in 0..<Int.random(in: 4...5) {
+            let angle = CGFloat.random(in: 0...(.pi * 2))
+            let length = bossRadius * CGFloat.random(in: 0.4...0.9)
+            let crackPath = CGMutablePath()
+            crackPath.move(to: .zero)
+            crackPath.addLine(to: CGPoint(x: cos(angle) * length, y: sin(angle) * length))
+
+            let crack = SKShapeNode(path: crackPath)
+            crack.strokeColor = SKColor(white: 0.6, alpha: 0.4)
+            crack.lineWidth = 1.2
+            crack.zPosition = 0.5
+            addChild(crack)
+            crackNodes.append(crack)
+        }
+
+        // Slow rotation (20s per revolution)
+        let direction: CGFloat = Bool.random() ? 1 : -1
+        let rotate = SKAction.repeatForever(SKAction.rotate(byAngle: .pi * 2 * direction, duration: 20))
+        body.run(rotate, withKey: "rotation")
+        for crack in crackNodes {
+            crack.run(SKAction.repeatForever(SKAction.rotate(byAngle: .pi * 2 * direction, duration: 20)))
+        }
 
         // Scale 0 initially
         setScale(0.1)
@@ -76,15 +100,7 @@ final class SectorSentinel: SKNode {
 
     func showProblem(_ problem: MathProblem) {
         self.problem = problem
-        problemLabel?.removeFromParent()
-
-        problemLabel = SKLabelNode(text: problem.question)
-        problemLabel.fontName = "AvenirNext-Bold"
-        problemLabel.fontSize = 16
-        problemLabel.fontColor = .white
-        problemLabel.position = CGPoint(x: 0, y: -50)
-        problemLabel.zPosition = 1
-        addChild(problemLabel)
+        // No text on boss body — question shown in HUD panel only
     }
 
     func destroy(completion: @escaping () -> Void) {
@@ -102,5 +118,35 @@ final class SectorSentinel: SKNode {
             SKAction.moveBy(x: 8, y: 0, duration: 0.05)
         ])
         run(shake)
+    }
+
+    func receiveLaserSpark() {
+        // Small spark particle burst at body position
+        let spark = SKEmitterNode()
+        spark.particleBirthRate = 200
+        spark.numParticlesToEmit = 15
+        spark.particleLifetime = 0.3
+        spark.particleLifetimeRange = 0.1
+
+        spark.particleSize = CGSize(width: 4, height: 4)
+        spark.particleScaleSpeed = -2.0
+
+        spark.particleSpeed = 60
+        spark.particleSpeedRange = 30
+        spark.emissionAngle = 0
+        spark.emissionAngleRange = .pi * 2
+
+        spark.particleColor = SKColor(white: 0.8, alpha: 1.0)
+        spark.particleAlphaSpeed = -3.0
+        spark.particleBlendMode = .add
+
+        addChild(spark)
+
+        spark.run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.4),
+            SKAction.removeFromParent()
+        ]))
+
+        AudioManager.shared.playBossLaserBounce()
     }
 }

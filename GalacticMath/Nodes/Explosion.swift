@@ -21,7 +21,7 @@ final class Explosion: SKNode {
             SKAction.removeFromParent()
         ]))
 
-        // Main particle burst — bigger
+        // Main particle burst — asteroid debris feel (orange tint)
         let emitter = SKEmitterNode()
         emitter.particleBirthRate = 400
         emitter.numParticlesToEmit = 80
@@ -41,15 +41,15 @@ final class Explosion: SKNode {
 
         switch ageGroup {
         case .cadet:
-            emitter.particleColor = SKColor.yellow
-            emitter.particleColorRedRange = 0.5
-            emitter.particleColorGreenRange = 0.5
-            emitter.particleColorBlueRange = 0.5
+            emitter.particleColor = SKColor(red: 1.0, green: 0.8, blue: 0.3, alpha: 1.0)
+            emitter.particleColorRedRange = 0.3
+            emitter.particleColorGreenRange = 0.4
+            emitter.particleColorBlueRange = 0.2
         case .pilot:
-            emitter.particleColor = SKColor.cyan
+            emitter.particleColor = SKColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1.0)
             emitter.particleColorBlueRange = 0.3
         case .ace:
-            emitter.particleColor = SKColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0)
+            emitter.particleColor = SKColor(red: 1.0, green: 0.7, blue: 0.2, alpha: 1.0)
             emitter.particleColorRedRange = 0.3
         }
 
@@ -151,6 +151,83 @@ final class Explosion: SKNode {
 
         let wait = SKAction.wait(forDuration: 1.5)
         explosion.run(SKAction.sequence([wait, SKAction.removeFromParent()]))
+
+        return explosion
+    }
+
+    // MARK: - Chain Explosion
+
+    static func chainExplosion(at position: CGPoint, color: SKColor, sizeFactor: CGFloat = 1.0, completion: @escaping () -> Void) -> Explosion {
+        let explosion = Explosion()
+        explosion.position = position
+
+        // Large particle burst
+        let emitter = SKEmitterNode()
+        emitter.particleBirthRate = 500 * sizeFactor
+        emitter.numParticlesToEmit = Int(100 * sizeFactor)
+        emitter.particleLifetime = 0.6
+        emitter.particleLifetimeRange = 0.2
+
+        let pSize = 8 * sizeFactor
+        emitter.particleSize = CGSize(width: pSize, height: pSize)
+        emitter.particleScaleSpeed = -1.0
+
+        emitter.particleSpeed = 200 * sizeFactor
+        emitter.particleSpeedRange = 80
+        emitter.emissionAngle = 0
+        emitter.emissionAngleRange = .pi * 2
+
+        emitter.particleColor = color
+        emitter.particleColorRedRange = 0.3
+        emitter.particleColorGreenRange = 0.3
+        emitter.particleAlpha = 1.0
+        emitter.particleAlphaSpeed = -1.5
+        emitter.particleBlendMode = .add
+
+        explosion.addChild(emitter)
+
+        // White flash circle
+        let flash = SKShapeNode(circleOfRadius: 30 * sizeFactor)
+        flash.fillColor = .white
+        flash.strokeColor = .clear
+        flash.alpha = 0.9
+        flash.zPosition = 99
+        explosion.addChild(flash)
+
+        flash.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.scale(to: 3.0, duration: 0.3),
+                SKAction.fadeOut(withDuration: 0.3)
+            ]),
+            SKAction.removeFromParent()
+        ]))
+
+        // Completion after 0.8s, self-remove
+        explosion.run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.8),
+            SKAction.run(completion),
+            SKAction.removeFromParent()
+        ]))
+
+        return explosion
+    }
+
+    // MARK: - Bottom Impact Flash
+
+    static func bottomImpactFlash(across sceneSize: CGSize) -> Explosion {
+        let explosion = Explosion()
+        explosion.position = CGPoint(x: sceneSize.width / 2, y: 20)
+        explosion.zPosition = 90
+
+        let bar = SKShapeNode(rectOf: CGSize(width: sceneSize.width, height: 40))
+        bar.fillColor = SKColor.red.withAlphaComponent(0.25)
+        bar.strokeColor = .clear
+        explosion.addChild(bar)
+
+        explosion.run(SKAction.sequence([
+            SKAction.fadeOut(withDuration: 0.4),
+            SKAction.removeFromParent()
+        ]))
 
         return explosion
     }

@@ -17,6 +17,7 @@ final class WaveManager {
     var maxAttempts: Int = 3
     var isWaitingForNext: Bool = false
     var isBossActive: Bool = false
+    var bossDefeatedThisLevel: Bool = false
 
     private let ageGroup: AgeGroup
     private let gameManager = GameManager.shared
@@ -30,7 +31,7 @@ final class WaveManager {
         guard !isWaitingForNext else { return }
         attemptCount = 0
 
-        if gameManager.isBossRound() && !isBossActive {
+        if gameManager.isBossRound() && !isBossActive && !bossDefeatedThisLevel {
             let problem = mathEngine.generateBossProblem(ageGroup: ageGroup, level: gameManager.currentLevel)
             currentProblem = problem
             isBossActive = true
@@ -47,7 +48,6 @@ final class WaveManager {
         guard let problem = currentProblem else { return false }
 
         if answer == problem.correctAnswer {
-            gameManager.correctAnswer(timeTaken: timeTaken)
             gameManager.recordTopicResult(topic: problem.topic, correct: true, time: timeTaken)
             delegate?.waveManagerCorrectAnswer()
             isBossActive = false

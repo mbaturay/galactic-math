@@ -160,4 +160,33 @@ final class AudioManager {
     func playMenuTap() {
         playTone(frequency: 660.0, duration: 0.05, volume: 0.2)
     }
+
+    // MARK: - Asteroid Sounds
+
+    func playAsteroidShatter() {
+        // Descending noise burst + crumble
+        playTone(frequency: 400, duration: 0.15, volume: 0.3, waveform: .triangle)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.playTone(frequency: 200, duration: 0.15, volume: 0.25, waveform: .triangle)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.playTone(frequency: 100, duration: 0.15, volume: 0.2, waveform: .square)
+        }
+    }
+
+    func playAsteroidChunk() {
+        playTone(frequency: 200, duration: 0.05, volume: 0.15, waveform: .square)
+    }
+
+    func playAsteroidCrack() {
+        playTone(frequency: 800, duration: 0.08, volume: 0.3, waveform: .square)
+    }
+
+    func playAsteroidImpact() {
+        playTone(frequency: 60, duration: 0.4, volume: 0.5, waveform: .sine)
+    }
+
+    func playBossLaserBounce() {
+        playTone(frequency: 1200, duration: 0.1, volume: 0.2, waveform: .triangle)
+    }
 }

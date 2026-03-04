@@ -167,21 +167,11 @@ final class GameManager {
         AdaptiveDifficulty.shared.reset()
     }
 
-    func correctAnswer(timeTaken: TimeInterval) {
+    func correctAnswer(timeTaken: TimeInterval, points: Int) {
         totalCorrect += 1
         totalAttempted += 1
         problemsThisLevel += 1
         correctStreak += 1
-
-        var points = 100
-        let speedBonus = max(0, Int(50.0 * (1.0 - min(timeTaken / 5.0, 1.0))))
-        points += speedBonus
-
-        if correctStreak >= 5 {
-            points = Int(Double(points) * 2.0)
-        } else if correctStreak >= 3 {
-            points = Int(Double(points) * 1.5)
-        }
 
         score += points
 
@@ -195,6 +185,31 @@ final class GameManager {
             }
             saveSlot(idx)
         }
+    }
+
+    var difficultyMultiplier: Double {
+        switch ageGroup {
+        case .cadet: return 1.0
+        case .pilot: return 1.2
+        case .ace: return 1.5
+        }
+    }
+
+    func updateBestZone(_ zone: String) {
+        guard let idx = currentSlotIndex, slots[idx] != nil else { return }
+        let ranks = ["CLOSE", "GOOD", "AMAZING", "INCREDIBLE"]
+        let currentRank = ranks.firstIndex(of: slots[idx]!.bestZone) ?? -1
+        let newRank = ranks.firstIndex(of: zone) ?? -1
+        if newRank > currentRank {
+            slots[idx]!.bestZone = zone
+            saveSlot(idx)
+        }
+    }
+
+    func markProximityTipSeen() {
+        guard let idx = currentSlotIndex, slots[idx] != nil else { return }
+        slots[idx]!.hasSeenProximityTip = true
+        saveSlot(idx)
     }
 
     func wrongAnswer() {

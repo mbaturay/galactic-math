@@ -13,6 +13,8 @@ struct PlayerProfile: Codable {
     var totalPlayTime: TimeInterval
     var createdDate: Date
     var lastPlayedDate: Date
+    var bestZone: String
+    var hasSeenProximityTip: Bool
 
     init(slotIndex: Int, name: String, avatar: String, ageGroup: AgeGroup) {
         self.slotIndex = slotIndex
@@ -27,6 +29,26 @@ struct PlayerProfile: Codable {
         self.totalPlayTime = 0
         self.createdDate = Date()
         self.lastPlayedDate = Date()
+        self.bestZone = ""
+        self.hasSeenProximityTip = false
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        slotIndex = try container.decode(Int.self, forKey: .slotIndex)
+        name = try container.decode(String.self, forKey: .name)
+        avatar = try container.decode(String.self, forKey: .avatar)
+        ageGroup = try container.decode(AgeGroup.self, forKey: .ageGroup)
+        currentLevel = try container.decode(Int.self, forKey: .currentLevel)
+        highScore = try container.decode(Int.self, forKey: .highScore)
+        totalCorrect = try container.decode(Int.self, forKey: .totalCorrect)
+        totalAttempted = try container.decode(Int.self, forKey: .totalAttempted)
+        topicAccuracy = try container.decode([String: TopicStats].self, forKey: .topicAccuracy)
+        totalPlayTime = try container.decode(TimeInterval.self, forKey: .totalPlayTime)
+        createdDate = try container.decode(Date.self, forKey: .createdDate)
+        lastPlayedDate = try container.decode(Date.self, forKey: .lastPlayedDate)
+        bestZone = try container.decodeIfPresent(String.self, forKey: .bestZone) ?? ""
+        hasSeenProximityTip = try container.decodeIfPresent(Bool.self, forKey: .hasSeenProximityTip) ?? false
     }
 }
 

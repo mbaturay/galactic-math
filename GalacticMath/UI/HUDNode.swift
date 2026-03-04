@@ -191,6 +191,10 @@ final class HUDNode: SKNode {
         msg.fontName = "AvenirNext-Bold"
         msg.fontSize = ageGroup == .cadet ? 32 : 26
         msg.fontColor = item.color
+        msg.numberOfLines = 0
+        msg.preferredMaxLayoutWidth = sceneSize.width - 40
+        msg.horizontalAlignmentMode = .center
+        msg.verticalAlignmentMode = .center
         msg.position = CGPoint(x: sceneSize.width / 2, y: sceneSize.height / 2)
         msg.zPosition = 200
         msg.setScale(0.1)

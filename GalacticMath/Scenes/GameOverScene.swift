@@ -2,6 +2,7 @@ import SpriteKit
 
 final class GameOverScene: SKScene {
     var selectedAgeGroup: AgeGroup = .cadet
+    var bossDestroyedPlayer: Bool = false
     private var starField: StarField!
 
     override func didMove(to view: SKView) {
@@ -16,23 +17,34 @@ final class GameOverScene: SKScene {
         let gm = GameManager.shared
 
         // Title
-        let title = SKLabelNode(text: "MISSION OVER!")
+        let titleText = bossDestroyedPlayer ? "THE BOSS DESTROYED YOU!" : "MISSION OVER!"
+        let title = SKLabelNode(text: titleText)
         title.fontName = "AvenirNext-Heavy"
         title.fontSize = min(size.width * 0.09, 40)
-        title.fontColor = SKColor(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0)
+        title.fontColor = bossDestroyedPlayer
+            ? SKColor(red: 1.0, green: 0.2, blue: 0.2, alpha: 1.0)
+            : SKColor(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0)
+        title.numberOfLines = 0
+        title.preferredMaxLayoutWidth = size.width - 40
+        title.horizontalAlignmentMode = .center
+        title.verticalAlignmentMode = .center
         title.position = CGPoint(x: size.width / 2, y: size.height * 0.78)
         title.zPosition = 10
         addChild(title)
 
         // Friendly message
         let message: String
-        switch selectedAgeGroup {
-        case .cadet:
-            message = "Good try, Space Cadet! Keep practicing!"
-        case .pilot:
-            message = "Nice effort, Star Pilot! Try again?"
-        case .ace:
-            message = "Great attempt, Commander! Ready for another mission?"
+        if bossDestroyedPlayer {
+            message = "The Sector Sentinel was too powerful!"
+        } else {
+            switch selectedAgeGroup {
+            case .cadet:
+                message = "Good try, Space Cadet! Keep practicing!"
+            case .pilot:
+                message = "Nice effort, Star Pilot! Try again?"
+            case .ace:
+                message = "Great attempt, Commander! Ready for another mission?"
+            }
         }
 
         let msgLabel = SKLabelNode(text: message)

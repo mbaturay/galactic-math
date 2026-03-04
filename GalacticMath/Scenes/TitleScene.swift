@@ -5,8 +5,6 @@ final class TitleScene: SKScene {
     private var titleLabel: SKLabelNode!
     private var subtitleLabel: SKLabelNode!
     private var tapLabel: SKLabelNode!
-    private var floatingEquations: [SKLabelNode] = []
-
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.03, green: 0.01, blue: 0.1, alpha: 1.0)
 
@@ -14,9 +12,6 @@ final class TitleScene: SKScene {
         starField = StarField()
         starField.setup(size: size, ageGroup: .pilot)
         addChild(starField)
-
-        // Floating math equations
-        spawnFloatingEquations()
 
         // Title
         titleLabel = SKLabelNode(text: "GALACTIC MATH")
@@ -98,32 +93,9 @@ final class TitleScene: SKScene {
         addChild(credits)
     }
 
-    private func spawnFloatingEquations() {
-        let equations = ["2+2=4", "5x3=15", "8-3=5", "9+7=16", "4x6=24", "12\u{00F7}3=4"]
-        for eq in equations {
-            let label = SKLabelNode(text: eq)
-            label.fontName = "AvenirNext-Regular"
-            label.fontSize = 14
-            label.fontColor = SKColor(white: 0.3, alpha: 0.4)
-            label.position = CGPoint(
-                x: CGFloat.random(in: 30...(size.width - 30)),
-                y: CGFloat.random(in: size.height * 0.35...size.height * 0.85)
-            )
-            label.zPosition = 1
-            addChild(label)
-            floatingEquations.append(label)
-
-            let drift = SKAction.sequence([
-                SKAction.moveBy(x: CGFloat.random(in: -15...15), y: CGFloat.random(in: -10...10), duration: Double.random(in: 3...6)),
-                SKAction.moveBy(x: CGFloat.random(in: -15...15), y: CGFloat.random(in: -10...10), duration: Double.random(in: 3...6))
-            ])
-            label.run(SKAction.repeatForever(drift))
-        }
-    }
-
     private func spawnFlyingRocket() {
         let rocket = SKLabelNode(text: "\u{1F680}")
-        rocket.fontSize = 30
+        rocket.fontSize = 45
         rocket.position = CGPoint(x: -40, y: size.height * 0.55)
         rocket.zPosition = 5
         addChild(rocket)

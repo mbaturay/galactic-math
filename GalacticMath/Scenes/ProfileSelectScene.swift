@@ -172,6 +172,25 @@ final class ProfileSelectScene: SKScene {
         statsLabel.position = CGPoint(x: 0, y: -slotSize.height * 0.30)
         container.addChild(statsLabel)
 
+        // Best Shot badge
+        if profile.bestZone == "INCREDIBLE" {
+            let badge = SKLabelNode(text: "Best: INCREDIBLE")
+            badge.fontName = "AvenirNext-Bold"
+            badge.fontSize = 9
+            badge.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
+            badge.verticalAlignmentMode = .center
+            badge.position = CGPoint(x: 0, y: -slotSize.height * 0.36)
+            container.addChild(badge)
+        } else if profile.bestZone == "AMAZING" {
+            let badge = SKLabelNode(text: "Best: AMAZING")
+            badge.fontName = "AvenirNext-Bold"
+            badge.fontSize = 9
+            badge.fontColor = SKColor(red: 1.0, green: 1.0, blue: 0.3, alpha: 1.0)
+            badge.verticalAlignmentMode = .center
+            badge.position = CGPoint(x: 0, y: -slotSize.height * 0.36)
+            container.addChild(badge)
+        }
+
         // Hold hint
         let hint = SKLabelNode(text: "hold to edit")
         hint.fontName = "AvenirNext-Regular"

@@ -4,6 +4,55 @@ import GameplayKit
 final class GameScene: SKScene, WaveManagerDelegate {
     var selectedAgeGroup: AgeGroup = .cadet
 
+    // MARK: - Proximity Zone
+
+    private enum ProximityZone {
+        case top, upper, middle, bottom
+
+        static func from(_ yPercent: CGFloat) -> ProximityZone {
+            if yPercent > 0.75 { return .top }
+            if yPercent > 0.50 { return .upper }
+            if yPercent > 0.25 { return .middle }
+            return .bottom
+        }
+
+        var label: String {
+            switch self {
+            case .top: return "INCREDIBLE"
+            case .upper: return "AMAZING"
+            case .middle: return "GOOD"
+            case .bottom: return "CLOSE"
+            }
+        }
+
+        var displayLabel: String {
+            switch self {
+            case .top: return "INCREDIBLE!"
+            case .upper: return "AMAZING!"
+            case .middle: return "GOOD!"
+            case .bottom: return "CLOSE!"
+            }
+        }
+
+        var color: SKColor {
+            switch self {
+            case .top: return SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
+            case .upper: return SKColor(red: 1.0, green: 1.0, blue: 0.3, alpha: 1.0)
+            case .middle: return .white
+            case .bottom: return SKColor(white: 0.6, alpha: 1.0)
+            }
+        }
+
+        var explosionSizeFactor: CGFloat {
+            switch self {
+            case .top: return 1.5
+            case .upper: return 1.2
+            case .middle: return 1.0
+            case .bottom: return 0.7
+            }
+        }
+    }
+
     // Nodes
     private var starField: StarField!
     private var beamGrid: BeamGrid!
@@ -29,10 +78,18 @@ final class GameScene: SKScene, WaveManagerDelegate {
     private var activeLasers: [LaserBeam] = []
     private var activeTorpedoes: [Torpedo] = []
 
+    // Boss movement
+    private var bossIsDescending: Bool = false
+    private var bossSpawnTime: TimeInterval = 0
+
     // Enemy management
     private var enemies: [NumberEnemy] = []
     private var enemyStartY: CGFloat = 0
     private var enemyTargetY: CGFloat = 0
+
+    // Background asteroids
+    private var backgroundAsteroids: [BackgroundAsteroid] = []
+    private let backgroundAsteroidCount = Int.random(in: 5...8)
 
     override func didMove(to view: SKView) {
         backgroundColor = selectedAgeGroup.backgroundColor
@@ -41,7 +98,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: selectedAgeGroup)
 
         setupStarField()
+        spawnBackgroundAsteroids()
         setupBeamGrid()
+        setupZoneIndicators()
         setupPlayerShip()
         setupHUD()
         setupTouchControls()
@@ -87,12 +146,43 @@ final class GameScene: SKScene, WaveManagerDelegate {
         addChild(starField)
     }
 
+    private func spawnBackgroundAsteroids() {
+        for _ in 0..<backgroundAsteroidCount {
+            let startY = CGFloat.random(in: 0...size.height)
+            let asteroid = BackgroundAsteroid.spawn(in: size, startY: startY)
+            addChild(asteroid)
+            backgroundAsteroids.append(asteroid)
+        }
+    }
+
     private func setupBeamGrid() {
         beamGrid = BeamGrid()
         beamGrid.setup(size: size, ageGroup: selectedAgeGroup)
         addChild(beamGrid)
         enemyStartY = beamGrid.vanishingPoint.y - 20
         enemyTargetY = size.height * 0.10
+    }
+
+    private func setupZoneIndicators() {
+        let totalTravel = enemyStartY - enemyTargetY
+
+        // Silver line at 50% travel height
+        let silverY = enemyTargetY + totalTravel * 0.50
+        let silverLine = SKShapeNode(rectOf: CGSize(width: size.width, height: 0.5))
+        silverLine.position = CGPoint(x: size.width / 2, y: silverY)
+        silverLine.fillColor = SKColor(white: 0.8, alpha: 0.10)
+        silverLine.strokeColor = .clear
+        silverLine.zPosition = -4
+        addChild(silverLine)
+
+        // Gold line at 75% travel height
+        let goldY = enemyTargetY + totalTravel * 0.75
+        let goldLine = SKShapeNode(rectOf: CGSize(width: size.width, height: 0.5))
+        goldLine.position = CGPoint(x: size.width / 2, y: goldY)
+        goldLine.fillColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 0.10)
+        goldLine.strokeColor = .clear
+        goldLine.zPosition = -4
+        addChild(goldLine)
     }
 
     private func setupPlayerShip() {
@@ -258,10 +348,26 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func handleCorrectHit(enemy: NumberEnemy, timeTaken: TimeInterval) {
         audioManager.playCorrect()
+        audioManager.playAsteroidShatter()
 
-        enemy.explodeCorrect { }
-        let explosion = Explosion.correctExplosion(at: enemy.position, ageGroup: selectedAgeGroup)
-        addChild(explosion)
+        // Proximity scoring
+        let totalTravel = enemyStartY - enemyTargetY
+        let yPercent: CGFloat = totalTravel > 0
+            ? (enemy.position.y - enemyTargetY) / totalTravel
+            : 0
+        let clampedPercent = min(max(yPercent, 0), 1)
+        let zone = ProximityZone.from(clampedPercent)
+
+        let basePoints = 50 + Int(clampedPercent * 450)
+        let streak = gameManager.correctStreak
+        let streakMul: Double = (streak + 1 >= 5) ? 2.0 : (streak + 1 >= 3) ? 1.5 : 1.0
+        let diffMul = gameManager.difficultyMultiplier
+        let lvlMul = 1.0 + Double(gameManager.currentLevel) * 0.1
+        let rawPoints = Double(basePoints) * streakMul * diffMul * lvlMul
+        let finalPoints = Int((rawPoints / 10).rounded() * 10)
+
+        gameManager.correctAnswer(timeTaken: timeTaken, points: finalPoints)
+        gameManager.updateBestZone(zone.label)
 
         hud.flashScreenEdge(color: .green)
         hud.updateScore(gameManager.score)
@@ -271,16 +377,34 @@ final class GameScene: SKScene, WaveManagerDelegate {
         playerShip.victorySpin()
 
         // Streak audio
-        let streak = gameManager.correctStreak
-        if streak == 5 || streak == 10 {
-            audioManager.playCombo(streak)
-        } else if streak == 3 {
+        let newStreak = gameManager.correctStreak
+        if newStreak == 5 || newStreak == 10 {
+            audioManager.playCombo(newStreak)
+        } else if newStreak == 3 {
             audioManager.playCombo(3)
         }
 
-        // Adaptive message (streak milestones, speed-up, "go faster" — all handled centrally)
-        if let msg = AdaptiveDifficulty.shared.messageAfterCorrectAnswer(
-            timeTaken: timeTaken, streak: streak, isBossRound: bossNode != nil
+        // Zone feedback
+        showZoneFeedback(zone: zone, points: finalPoints, at: enemy.position)
+
+        // Proximity tip — show once per profile on first BOTTOM zone hit
+        var showedProximityTip = false
+        if zone == .bottom, let idx = gameManager.currentSlotIndex,
+           let profile = gameManager.slots[idx], !profile.hasSeenProximityTip {
+            showedProximityTip = true
+            gameManager.markProximityTipSeen()
+            run(SKAction.sequence([
+                SKAction.wait(forDuration: 1.5),
+                SKAction.run { [weak self] in
+                    self?.hud.showMessage("Shoot earlier for MORE points!", color: SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0))
+                }
+            ]))
+        }
+
+        // Adaptive message (only when no proximity tip was shown)
+        if !showedProximityTip,
+           let msg = AdaptiveDifficulty.shared.messageAfterCorrectAnswer(
+            timeTaken: timeTaken, streak: newStreak, isBossRound: bossNode != nil
         ) {
             run(SKAction.sequence([
                 SKAction.wait(forDuration: 0.5),
@@ -298,19 +422,55 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         showStarRating(stars, at: enemy.position)
 
-        // Confetti for correct
+        // Confetti
         let confetti = ConfettiNode()
         confetti.zPosition = 150
         addChild(confetti)
         confetti.burst(in: size)
 
-        // Clear remaining enemies
-        clearAllEnemies()
+        // Chain explosion: correct enemy first (sized by zone), then remaining L→R
+        let beamColors = selectedAgeGroup.beamColors
+        let correctColor = beamColors[enemy.beamIndex % beamColors.count]
+
+        let correctPos = enemy.position
+        enemy.shatterIntoChunks { }
+        let chainExp = Explosion.chainExplosion(at: correctPos, color: correctColor, sizeFactor: zone.explosionSizeFactor) { }
+        addChild(chainExp)
+
+        // Remaining enemies sorted L→R by beamIndex
+        let remaining = enemies.filter { $0 !== enemy && $0.parent != nil }
+            .sorted { $0.beamIndex < $1.beamIndex }
+
+        var delay: TimeInterval = 0.15
+        for other in remaining {
+            let d = delay
+            let otherPos = other.position
+            run(SKAction.sequence([
+                SKAction.wait(forDuration: d),
+                SKAction.run { [weak self, weak other] in
+                    guard let self = self, let other = other, other.parent != nil else { return }
+                    self.audioManager.playAsteroidChunk()
+                    other.shatterIntoChunks { }
+                    let smallExp = Explosion.chainExplosion(at: otherPos, color: SKColor(white: 0.6, alpha: 1.0)) { }
+                    self.addChild(smallExp)
+                }
+            ]))
+            delay += 0.15
+        }
+
+        // Cleanup after chain completes
+        let totalDelay = delay + 0.5
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: totalDelay),
+            SKAction.run { [weak self] in
+                self?.clearAllEnemies()
+            }
+        ]))
 
         // Check for level complete (skip if boss is active — boss defeat triggers it)
         if gameManager.isLevelComplete() && bossNode == nil {
             run(SKAction.sequence([
-                SKAction.wait(forDuration: 1.5),
+                SKAction.wait(forDuration: max(totalDelay, 1.5)),
                 SKAction.run { [weak self] in
                     self?.levelComplete()
                 }
@@ -318,10 +478,43 @@ final class GameScene: SKScene, WaveManagerDelegate {
         }
     }
 
+    private func showZoneFeedback(zone: ProximityZone, points: Int, at position: CGPoint) {
+        let isCadet = selectedAgeGroup == .cadet
+
+        let zoneLabel = SKLabelNode(text: zone.displayLabel)
+        zoneLabel.fontName = "AvenirNext-Heavy"
+        zoneLabel.fontSize = isCadet ? 28 : 24
+        zoneLabel.fontColor = zone.color
+        zoneLabel.verticalAlignmentMode = .center
+        zoneLabel.horizontalAlignmentMode = .center
+        zoneLabel.position = CGPoint(x: position.x, y: position.y + 20)
+        zoneLabel.zPosition = 160
+        addChild(zoneLabel)
+
+        let pointsLabel = SKLabelNode(text: "+\(points)")
+        pointsLabel.fontName = "AvenirNext-Bold"
+        pointsLabel.fontSize = isCadet ? 22 : 18
+        pointsLabel.fontColor = zone.color
+        pointsLabel.verticalAlignmentMode = .center
+        pointsLabel.horizontalAlignmentMode = .center
+        pointsLabel.position = CGPoint(x: position.x, y: position.y - 8)
+        pointsLabel.zPosition = 160
+        addChild(pointsLabel)
+
+        let floatUp = SKAction.moveBy(x: 0, y: 50, duration: 1.2)
+        let fadeOut = SKAction.fadeOut(withDuration: 1.2)
+        let group = SKAction.group([floatUp, fadeOut])
+        let remove = SKAction.removeFromParent()
+
+        zoneLabel.run(SKAction.sequence([group, remove]))
+        pointsLabel.run(SKAction.sequence([group.copy() as! SKAction, remove.copy() as! SKAction]))
+    }
+
     private func handleWrongHit(enemy: NumberEnemy) {
         audioManager.playWrong()
+        audioManager.playAsteroidCrack()
 
-        enemy.explodeWrong()
+        enemy.showDamage()
         enemy.bounceBack()
 
         let wrongExplosion = Explosion.wrongExplosion(at: enemy.position, ageGroup: selectedAgeGroup)
@@ -353,17 +546,25 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func handleBossDestroyed() {
         guard let boss = bossNode else { return }
+        bossIsDescending = false
+        waveManager.bossDefeatedThisLevel = true
 
         audioManager.playBossDestroy()
 
+        // Massive shatter explosion
         let explosion = Explosion.bossExplosion(at: boss.position)
         addChild(explosion)
 
         boss.destroy { }
 
-        gameManager.score += 500
+        // Score via correctAnswer so problemsThisLevel is incremented
+        let timeTaken = CACurrentMediaTime() - problemStartTime
+        gameManager.correctAnswer(timeTaken: timeTaken, points: 500)
         hud.updateScore(gameManager.score)
-        hud.showMessage("BOSS DESTROYED! +500", color: .yellow)
+        hud.showMessage("BOSS DEFEATED!", color: .yellow)
+
+        // Screen flash white
+        hud.flashScreenEdge(color: .white)
 
         let confetti = ConfettiNode()
         confetti.zPosition = 150
@@ -374,24 +575,38 @@ final class GameScene: SKScene, WaveManagerDelegate {
         clearAllEnemies()
         touchControls.switchToNormalMode()
 
-        // Boss defeated completes the level
-        if gameManager.isLevelComplete() {
-            run(SKAction.sequence([
-                SKAction.wait(forDuration: 2.0),
-                SKAction.run { [weak self] in
-                    self?.levelComplete()
-                }
-            ]))
+        // Dramatic slow motion for 0.5s
+        self.speed = 0.3
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.speed = 1.0
         }
+
+        // Boss defeated always completes the level
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 2.0),
+            SKAction.run { [weak self] in
+                self?.levelComplete()
+            }
+        ]))
     }
 
     private func handleBossEscaped() {
         guard let boss = bossNode else { return }
+        bossIsDescending = false
+        waveManager.bossDefeatedThisLevel = true
         boss.destroy { }
         bossNode = nil
         clearAllEnemies()
         touchControls.switchToNormalMode()
         hud.showMessage("Boss escaped!", color: .orange)
+
+        // Boss escaped completes the level
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 1.5),
+            SKAction.run { [weak self] in
+                self?.levelComplete()
+            }
+        ]))
     }
 
     private func showStarRating(_ stars: Int, at position: CGPoint) {
@@ -442,6 +657,20 @@ final class GameScene: SKScene, WaveManagerDelegate {
     func waveManagerEnemyReachedBottom() {
         hud.updateLives(gameManager.lives)
         playerShip.hitFlash()
+        audioManager.playAsteroidImpact()
+
+        // Screen shake
+        let shake = SKAction.sequence([
+            SKAction.moveBy(x: -8, y: 4, duration: 0.05),
+            SKAction.moveBy(x: 16, y: -8, duration: 0.05),
+            SKAction.moveBy(x: -16, y: 8, duration: 0.05),
+            SKAction.moveBy(x: 8, y: -4, duration: 0.05)
+        ])
+        run(SKAction.repeat(shake, count: 2))
+
+        // Bottom impact flash
+        let impact = Explosion.bottomImpactFlash(across: size)
+        addChild(impact)
 
         if gameManager.isGameOver() {
             gameOver()
@@ -474,7 +703,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         ])
         run(SKAction.repeat(shake, count: 3))
 
-        hud.showMessage("⚠️ BOSS INCOMING! ⚠️", color: .red)
+        hud.showMessage("BOSS INCOMING!", color: .red)
 
         // Switch button to TORPEDO
         touchControls.switchToBossMode()
@@ -485,17 +714,19 @@ final class GameScene: SKScene, WaveManagerDelegate {
         addChild(boss)
         bossNode = boss
 
-        let bossPos = CGPoint(x: size.width / 2, y: size.height * 0.65)
-        boss.appear(at: bossPos) { [weak self] in
+        // Boss spawns at top and descends toward player
+        let bossStartPos = CGPoint(x: size.width / 2, y: enemyStartY + 30)
+        boss.appear(at: bossStartPos) { [weak self] in
             guard let self = self else { return }
             boss.showProblem(problem)
             self.problemStartTime = CACurrentMediaTime()
+            self.bossSpawnTime = CACurrentMediaTime()
+            self.bossIsDescending = true
             self.hud.problemDisplay.showProblem(problem.question, topic: "BOSS ROUND")
             self.hud.problemDisplay.startPulse()
             self.spawnEnemies(for: problem)
 
-            // Show torpedo instruction after boss appears
-            self.hud.showMessage("USE TORPEDO TO DEFEAT THE BOSS!", color: .orange)
+            self.hud.showMessage("FIRE TORPEDO AT CORRECT ANSWER!", color: .orange)
         }
     }
 
@@ -517,7 +748,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
                 x: beamGrid.beamXAtY(i, y: enemyStartY),
                 y: enemyStartY
             )
-            enemy.setScale(0.3)
+            enemy.setScale(0.5)
             enemy.zPosition = 10
             addChild(enemy)
             enemies.append(enemy)
@@ -547,8 +778,25 @@ final class GameScene: SKScene, WaveManagerDelegate {
         starField.update(deltaTime: dt)
         beamGrid.update(deltaTime: dt)
 
+        // Background asteroids — remove off-screen, respawn
+        backgroundAsteroids.removeAll { asteroid in
+            if asteroid.isOffScreen {
+                asteroid.removeFromParent()
+                return true
+            }
+            return false
+        }
+        while backgroundAsteroids.count < backgroundAsteroidCount {
+            let asteroid = BackgroundAsteroid.spawn(in: size)
+            addChild(asteroid)
+            backgroundAsteroids.append(asteroid)
+        }
+
         // Move enemies down
         updateEnemies(deltaTime: dt)
+
+        // Move boss down (if descending)
+        updateBoss(deltaTime: dt)
     }
 
     private func updateEnemies(deltaTime dt: TimeInterval) {
@@ -567,9 +815,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
             let p = min(max(progress, 0), 1)
             // Quadratic ease-in: slow at top, fast rush at bottom
             let eased = p * p
-            // Scale from 0.3 → 1.2 (1.2x at very bottom for urgency)
-            let scale = 0.3 + eased * 0.9
-            enemy.setScale(min(scale, 1.2))
+            // Scale from 0.5 → 1.0 (asteroid perspective)
+            let scale = 0.5 + eased * 0.5
+            enemy.setScale(min(scale, 1.0))
 
             // Check if reached bottom
             if enemy.position.y <= enemyTargetY {
@@ -577,6 +825,81 @@ final class GameScene: SKScene, WaveManagerDelegate {
                 return
             }
         }
+    }
+
+    private func updateBoss(deltaTime dt: TimeInterval) {
+        guard let boss = bossNode, bossIsDescending else { return }
+
+        // Boss moves slightly faster than normal asteroids
+        let bossSpeed = enemySpeed * 1.2
+        boss.position.y -= bossSpeed * CGFloat(dt)
+
+        // Sinusoidal weave
+        let elapsed = CACurrentMediaTime() - bossSpawnTime
+        let waveAmplitude: CGFloat = size.width * 0.15
+        boss.position.x = size.width / 2 + sin(CGFloat(elapsed) * 2.0) * waveAmplitude
+
+        // Scale up dramatically as it descends (0.8 → 2.5)
+        let totalTravel = enemyStartY + 30 - enemyTargetY
+        let progress = totalTravel > 0
+            ? 1.0 - (boss.position.y - enemyTargetY) / totalTravel
+            : 0
+        let p = min(max(progress, 0), 1)
+        let bossScale = 0.8 + p * 1.7
+        boss.setScale(bossScale)
+
+        // Boss reached player = instant game over
+        if boss.position.y <= enemyTargetY {
+            handleBossReachedBottom()
+        }
+    }
+
+    private func handleBossReachedBottom() {
+        guard let boss = bossNode else { return }
+        bossIsDescending = false
+        waveManager.bossDefeatedThisLevel = true
+
+        // Massive explosion
+        let explosion = Explosion.bossExplosion(at: boss.position)
+        addChild(explosion)
+
+        boss.removeFromParent()
+        bossNode = nil
+        clearAllEnemies()
+        touchControls.switchToNormalMode()
+
+        // Full red flash
+        hud.flashScreenEdge(color: .red)
+
+        // Screen shake
+        let shake = SKAction.sequence([
+            SKAction.moveBy(x: -12, y: 6, duration: 0.05),
+            SKAction.moveBy(x: 24, y: -12, duration: 0.05),
+            SKAction.moveBy(x: -24, y: 12, duration: 0.05),
+            SKAction.moveBy(x: 12, y: -6, duration: 0.05)
+        ])
+        run(SKAction.repeat(shake, count: 4))
+
+        // Instant game over — boss destroyed the player
+        bossGameOver()
+    }
+
+    private func bossGameOver() {
+        isGameActive = false
+        audioManager.playGameOver()
+
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 1.0),
+            SKAction.run { [weak self] in
+                guard let self = self else { return }
+                let transition = SKTransition.crossFade(withDuration: 0.8)
+                let gameOverScene = GameOverScene(size: self.size)
+                gameOverScene.scaleMode = .resizeFill
+                gameOverScene.selectedAgeGroup = self.selectedAgeGroup
+                gameOverScene.bossDestroyedPlayer = true
+                self.view?.presentScene(gameOverScene, transition: transition)
+            }
+        ]))
     }
 
     // MARK: - Navigation
@@ -622,12 +945,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     // MARK: - Pause
 
-    private var showingQuitConfirm = false
-
     private func showPauseOverlay() {
         guard pauseOverlay == nil else { return }
         isPaused_ = true
-        showingQuitConfirm = false
 
         let overlay = SKNode()
         overlay.zPosition = 1000
@@ -662,40 +982,6 @@ final class GameScene: SKScene, WaveManagerDelegate {
         pauseOverlay = overlay
     }
 
-    private func showQuitConfirm() {
-        guard let overlay = pauseOverlay else { return }
-        showingQuitConfirm = true
-
-        // Remove existing buttons
-        overlay.children.filter { $0.name == "pauseResume" || $0.name == "pauseMenu" }
-            .forEach { $0.removeFromParent() }
-        overlay.children.filter { $0 is SKLabelNode }.forEach { $0.removeFromParent() }
-
-        let msg = SKLabelNode(text: "Quit game?")
-        msg.fontName = "AvenirNext-Bold"
-        msg.fontSize = 28
-        msg.fontColor = .white
-        msg.position = CGPoint(x: size.width / 2, y: size.height / 2 + 50)
-        overlay.addChild(msg)
-
-        let sub = SKLabelNode(text: "Progress will be lost")
-        sub.fontName = "AvenirNext-Medium"
-        sub.fontSize = 16
-        sub.fontColor = SKColor(white: 0.7, alpha: 1.0)
-        sub.position = CGPoint(x: size.width / 2, y: size.height / 2 + 20)
-        overlay.addChild(sub)
-
-        let quitBtn = createPauseButton(text: "Quit", color: SKColor(red: 0.7, green: 0.2, blue: 0.2, alpha: 1.0))
-        quitBtn.position = CGPoint(x: size.width / 2, y: size.height / 2 - 30)
-        quitBtn.name = "confirmQuit"
-        overlay.addChild(quitBtn)
-
-        let cancelBtn = createPauseButton(text: "Cancel", color: SKColor(white: 0.5, alpha: 1.0))
-        cancelBtn.position = CGPoint(x: size.width / 2, y: size.height / 2 - 90)
-        cancelBtn.name = "cancelQuit"
-        overlay.addChild(cancelBtn)
-    }
-
     private func createPauseButton(text: String, color: SKColor) -> SKNode {
         let btn = SKNode()
         let btnSize = CGSize(width: min(size.width * 0.6, 200), height: 44)
@@ -720,37 +1006,31 @@ final class GameScene: SKScene, WaveManagerDelegate {
         let location = touch.location(in: self)
 
         if isPaused_, let overlay = pauseOverlay {
-            // Handle pause menu taps
+            // Find the CLOSEST named button (prevents 80pt overlap between adjacent buttons)
+            var closestName: String?
+            var closestDist: CGFloat = .greatestFiniteMagnitude
             for child in overlay.children {
                 guard let name = child.name else { continue }
                 let dist = hypot(location.x - child.position.x, location.y - child.position.y)
-                if dist < 80 {
-                    if name == "pauseResume" {
-                        pauseOverlay?.removeFromParent()
-                        pauseOverlay = nil
-                        isPaused_ = false
-                        showingQuitConfirm = false
-                        return
-                    }
-                    if name == "pauseMenu" {
-                        showQuitConfirm()
-                        return
-                    }
-                    if name == "confirmQuit" {
-                        pauseOverlay?.removeFromParent()
-                        pauseOverlay = nil
-                        isPaused_ = false
-                        navigateBack()
-                        return
-                    }
-                    if name == "cancelQuit" {
-                        // Go back to pause menu
-                        pauseOverlay?.removeFromParent()
-                        pauseOverlay = nil
-                        showingQuitConfirm = false
-                        showPauseOverlay()
-                        return
-                    }
+                if dist < 80 && dist < closestDist {
+                    closestDist = dist
+                    closestName = name
+                }
+            }
+
+            if let name = closestName {
+                if name == "pauseResume" {
+                    pauseOverlay?.removeFromParent()
+                    pauseOverlay = nil
+                    isPaused_ = false
+                    return
+                }
+                if name == "pauseMenu" {
+                    pauseOverlay?.removeFromParent()
+                    pauseOverlay = nil
+                    isPaused_ = false
+                    navigateBack()
+                    return
                 }
             }
             return
