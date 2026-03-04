@@ -1,13 +1,17 @@
 import SpriteKit
 
 final class BeamGrid: SKNode {
-    private var beamLines: [SKShapeNode] = []
-    private var gridLines: [SKShapeNode] = []
+    private var baseBeamLines: [SKShapeNode] = []   // Grey, always visible
+    private var colorBeamLines: [SKShapeNode] = []  // Colored overlay, animated
+    private var gridLineNodes: [SKShapeNode] = []
     private var beamCount: Int = 5
     private var sceneSize: CGSize = .zero
     private var ageGroup: AgeGroup = .cadet
-    private var activeBeamIndex: Int = 0
-    private var gridOffset: CGFloat = 0
+    private var activeBeamIndex: Int = -1
+
+    // Grid line animation
+    private let gridLineCount = 14
+    private var gridPhases: [CGFloat] = []
 
     var beamPositions: [CGFloat] = []
 
@@ -36,11 +40,13 @@ final class BeamGrid: SKNode {
         }
     }
 
+    // MARK: - Vertical Beams
+
     private func drawBeams() {
-        for line in beamLines {
-            line.removeFromParent()
-        }
-        beamLines.removeAll()
+        for line in baseBeamLines { line.removeFromParent() }
+        for line in colorBeamLines { line.removeFromParent() }
+        baseBeamLines.removeAll()
+        colorBeamLines.removeAll()
 
         let colors = ageGroup.beamColors
 
@@ -49,60 +55,119 @@ final class BeamGrid: SKNode {
             path.move(to: CGPoint(x: beamPositions[i], y: 0))
             path.addLine(to: vanishingPoint)
 
-            let line = SKShapeNode(path: path)
-            let colorIndex = i % colors.count
-            line.strokeColor = colors[colorIndex].withAlphaComponent(0.3)
-            line.lineWidth = ageGroup == .cadet ? 3.0 : 2.0
-            line.zPosition = -50
-            line.glowWidth = ageGroup == .cadet ? 2.0 : 1.0
-            addChild(line)
-            beamLines.append(line)
-        }
-    }
+            // Base layer: light grey, always visible
+            let base = SKShapeNode(path: path)
+            base.strokeColor = SKColor(white: 0.7, alpha: 0.38)
+            base.lineWidth = 1.5
+            base.glowWidth = 0
+            base.zPosition = -50
+            addChild(base)
+            baseBeamLines.append(base)
 
-    private func drawGridLines() {
-        let horizontalCount = 8
-        for i in 0..<horizontalCount {
-            let t = CGFloat(i) / CGFloat(horizontalCount)
-            let y = t * vanishingPoint.y
-
-            let leftX = beamPositions.first! + (vanishingPoint.x - beamPositions.first!) * t
-            let rightX = beamPositions.last! + (vanishingPoint.x - beamPositions.last!) * t
-
-            let path = CGMutablePath()
-            path.move(to: CGPoint(x: leftX, y: y))
-            path.addLine(to: CGPoint(x: rightX, y: y))
-
-            let line = SKShapeNode(path: path)
-            line.strokeColor = ageGroup.primaryColor.withAlphaComponent(0.08)
-            line.lineWidth = 1.0
-            line.zPosition = -51
-            addChild(line)
-            gridLines.append(line)
+            // Color overlay: beam-specific color, hidden by default
+            let colorLine = SKShapeNode(path: path)
+            colorLine.strokeColor = colors[i % colors.count]
+            colorLine.lineWidth = 2.8
+            colorLine.glowWidth = 0
+            colorLine.alpha = 0
+            colorLine.zPosition = -49
+            addChild(colorLine)
+            colorBeamLines.append(colorLine)
         }
     }
 
     func setActiveBeam(_ index: Int) {
+        let prevIndex = activeBeamIndex
         activeBeamIndex = index
-        for (i, line) in beamLines.enumerated() {
-            let colors = ageGroup.beamColors
-            let colorIndex = i % colors.count
-            if i == index {
-                line.strokeColor = colors[colorIndex].withAlphaComponent(0.8)
-                line.glowWidth = ageGroup == .cadet ? 4.0 : 3.0
-            } else {
-                line.strokeColor = colors[colorIndex].withAlphaComponent(0.3)
-                line.glowWidth = ageGroup == .cadet ? 2.0 : 1.0
-            }
+
+        // Fade out previous beam color
+        if prevIndex >= 0 && prevIndex < colorBeamLines.count && prevIndex != index {
+            colorBeamLines[prevIndex].removeAction(forKey: "beamTransition")
+            colorBeamLines[prevIndex].run(
+                SKAction.fadeAlpha(to: 0, duration: 0.2),
+                withKey: "beamTransition"
+            )
+        }
+
+        // Fade in new beam color
+        if index >= 0 && index < colorBeamLines.count {
+            colorBeamLines[index].removeAction(forKey: "beamTransition")
+            colorBeamLines[index].run(
+                SKAction.fadeAlpha(to: 0.88, duration: 0.2),
+                withKey: "beamTransition"
+            )
         }
     }
 
-    func update(deltaTime: TimeInterval) {
-        gridOffset += CGFloat(deltaTime) * 40.0
-        if gridOffset > 50.0 {
-            gridOffset -= 50.0
+    /// Brief brighten when laser fires along a beam
+    func flashBeam(_ index: Int) {
+        guard index >= 0 && index < colorBeamLines.count else { return }
+        let line = colorBeamLines[index]
+
+        line.removeAction(forKey: "beamFlash")
+        line.alpha = 1.0
+
+        let restore = SKAction.sequence([
+            SKAction.wait(forDuration: 0.15),
+            SKAction.fadeAlpha(to: index == activeBeamIndex ? 0.88 : 0, duration: 0.15)
+        ])
+        line.run(restore, withKey: "beamFlash")
+    }
+
+    // MARK: - Horizontal Grid Lines (animated top → bottom)
+
+    private func drawGridLines() {
+        for line in gridLineNodes { line.removeFromParent() }
+        gridLineNodes.removeAll()
+
+        gridPhases = (0..<gridLineCount).map { CGFloat($0) / CGFloat(gridLineCount) }
+
+        for _ in 0..<gridLineCount {
+            let line = SKShapeNode()
+            line.strokeColor = SKColor(white: 0.85, alpha: 1.0)
+            line.lineWidth = 0.8
+            line.zPosition = -51
+            addChild(line)
+            gridLineNodes.append(line)
         }
     }
+
+    // MARK: - Update
+
+    func update(deltaTime: TimeInterval) {
+        let scrollSpeed: CGFloat = 0.28
+
+        guard !gridPhases.isEmpty else { return }
+
+        let leftBase = beamPositions.first ?? 0
+        let rightBase = beamPositions.last ?? sceneSize.width
+        let vpX = vanishingPoint.x
+        let vpY = vanishingPoint.y
+
+        for i in 0..<gridPhases.count {
+            gridPhases[i] += CGFloat(deltaTime) * scrollSpeed
+            if gridPhases[i] >= 1.0 {
+                gridPhases[i] -= 1.0
+            }
+
+            let phase = gridPhases[i]
+            let y = vpY * (1.0 - phase)
+            let t = y / vpY
+
+            let leftX = leftBase + (vpX - leftBase) * t
+            let rightX = rightBase + (vpX - rightBase) * t
+
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: leftX, y: y))
+            path.addLine(to: CGPoint(x: rightX, y: y))
+            gridLineNodes[i].path = path
+
+            // Subtle: 8% near vanishing point, 18% near player
+            gridLineNodes[i].alpha = 0.08 + (1.0 - t) * 0.10
+        }
+    }
+
+    // MARK: - Utilities
 
     func positionForBeam(_ index: Int) -> CGFloat {
         guard index >= 0 && index < beamPositions.count else {
@@ -133,8 +198,6 @@ final class BeamGrid: SKNode {
         let bottomX = beamPositions[beamIndex]
         let dx = vanishingPoint.x - bottomX
         let dy = vanishingPoint.y
-        // Ship sprite is drawn with nose along +Y.
-        // To align local +Y with direction (dx, dy): zRotation = -atan2(dx, dy)
         return -atan2(dx, dy)
     }
 }

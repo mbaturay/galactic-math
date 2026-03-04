@@ -5,22 +5,39 @@ final class Explosion: SKNode {
         let explosion = Explosion()
         explosion.position = position
 
+        // Bright flash circle
+        let flash = SKShapeNode(circleOfRadius: 25)
+        flash.fillColor = SKColor.white
+        flash.strokeColor = .clear
+        flash.alpha = 0.9
+        flash.zPosition = 99
+        explosion.addChild(flash)
+
+        flash.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.scale(to: 2.5, duration: 0.2),
+                SKAction.fadeOut(withDuration: 0.3)
+            ]),
+            SKAction.removeFromParent()
+        ]))
+
+        // Main particle burst — bigger
         let emitter = SKEmitterNode()
-        emitter.particleBirthRate = 200
-        emitter.numParticlesToEmit = 40
-        emitter.particleLifetime = 0.8
-        emitter.particleLifetimeRange = 0.3
+        emitter.particleBirthRate = 400
+        emitter.numParticlesToEmit = 80
+        emitter.particleLifetime = 1.0
+        emitter.particleLifetimeRange = 0.4
 
-        emitter.particleSize = CGSize(width: 8, height: 8)
-        emitter.particleScaleSpeed = -1.0
+        emitter.particleSize = CGSize(width: 14, height: 14)
+        emitter.particleScaleSpeed = -0.8
 
-        emitter.particleSpeed = 120
-        emitter.particleSpeedRange = 60
+        emitter.particleSpeed = 180
+        emitter.particleSpeedRange = 80
         emitter.emissionAngle = 0
         emitter.emissionAngleRange = .pi * 2
 
         emitter.particleAlpha = 1.0
-        emitter.particleAlphaSpeed = -1.2
+        emitter.particleAlphaSpeed = -1.0
 
         switch ageGroup {
         case .cadet:
@@ -51,7 +68,7 @@ final class Explosion: SKNode {
         let fadeOut = SKAction.fadeOut(withDuration: 0.8)
         label.run(SKAction.group([floatUp, fadeOut]))
 
-        let wait = SKAction.wait(forDuration: 1.0)
+        let wait = SKAction.wait(forDuration: 1.2)
         explosion.run(SKAction.sequence([wait, SKAction.removeFromParent()]))
 
         return explosion

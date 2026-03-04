@@ -113,6 +113,18 @@ final class ProfileSelectScene: SKScene {
             addChild(node)
             slotNodes[i] = node
         }
+
+        // Hint text below slots
+        let hint = SKLabelNode(text: "Hold any player to edit or delete")
+        hint.fontName = "AvenirNext-Regular"
+        hint.fontSize = 12
+        hint.fontColor = SKColor(white: 0.45, alpha: 0.7)
+        hint.horizontalAlignmentMode = .center
+        hint.verticalAlignmentMode = .center
+        hint.position = CGPoint(x: size.width / 2, y: originY - 16)
+        hint.zPosition = 10
+        hint.name = "content"
+        addChild(hint)
     }
 
     private func createOccupiedSlot(profile: PlayerProfile, slotSize: CGSize) -> SKNode {
@@ -608,19 +620,28 @@ final class ProfileSelectScene: SKScene {
         msg.fontName = "AvenirNext-Bold"
         msg.fontSize = 18
         msg.fontColor = .white
-        msg.position = CGPoint(x: size.width / 2, y: size.height / 2 + 40)
+        msg.position = CGPoint(x: size.width / 2, y: size.height / 2 + 45)
         msg.zPosition = 52
         msg.name = "overlay"
         addChild(msg)
 
-        let sub = SKLabelNode(text: "All progress will be lost.")
-        sub.fontName = "AvenirNext-Regular"
-        sub.fontSize = 13
-        sub.fontColor = SKColor(white: 0.6, alpha: 0.9)
-        sub.position = CGPoint(x: size.width / 2, y: size.height / 2 + 15)
-        sub.zPosition = 52
-        sub.name = "overlay"
-        addChild(sub)
+        let sub1 = SKLabelNode(text: "All of \(profile.name)'s progress will be")
+        sub1.fontName = "AvenirNext-Regular"
+        sub1.fontSize = 12
+        sub1.fontColor = SKColor(white: 0.6, alpha: 0.9)
+        sub1.position = CGPoint(x: size.width / 2, y: size.height / 2 + 22)
+        sub1.zPosition = 52
+        sub1.name = "overlay"
+        addChild(sub1)
+
+        let sub2 = SKLabelNode(text: "lost forever. This cannot be undone.")
+        sub2.fontName = "AvenirNext-Regular"
+        sub2.fontSize = 12
+        sub2.fontColor = SKColor(white: 0.6, alpha: 0.9)
+        sub2.position = CGPoint(x: size.width / 2, y: size.height / 2 + 8)
+        sub2.zPosition = 52
+        sub2.name = "overlay"
+        addChild(sub2)
 
         // Confirm delete
         let delBtn = createMenuButton(

@@ -36,88 +36,82 @@ final class HUDNode: SKNode {
         zPosition = 100
 
         let topInset = max(safeAreaTop, 10)
+        let barHeight: CGFloat = 56
+        let barCenterY = size.height - topInset - barHeight / 2
 
-        // === ROW 1: Pause (left), Player name (center-left), Score (right) ===
-        let row1Y = size.height - topInset - 22
+        // === DARK BACKGROUND BAR ===
+        let barBg = SKShapeNode(rectOf: CGSize(width: size.width, height: barHeight))
+        barBg.position = CGPoint(x: size.width / 2, y: barCenterY)
+        barBg.fillColor = SKColor(white: 0.0, alpha: 0.55)
+        barBg.strokeColor = .clear
+        barBg.zPosition = 99
+        addChild(barBg)
 
-        // Pause button
+        // === LEFT: Pause icon (no background) ===
         pauseButton = SKNode()
-        pauseButton.position = CGPoint(x: 28, y: row1Y)
+        pauseButton.position = CGPoint(x: 30, y: barCenterY)
         pauseButton.zPosition = 101
         pauseButton.name = "pauseButton"
 
-        let pauseBg = SKShapeNode(rectOf: CGSize(width: 36, height: 30), cornerRadius: 8)
-        pauseBg.fillColor = SKColor(white: 0.15, alpha: 0.7)
-        pauseBg.strokeColor = SKColor(white: 0.4, alpha: 0.6)
-        pauseBg.lineWidth = 1.0
-        pauseButton.addChild(pauseBg)
-
         let pauseIcon = SKLabelNode(text: "⏸")
-        pauseIcon.fontSize = 16
+        pauseIcon.fontSize = 30
+        pauseIcon.fontColor = SKColor(white: 1.0, alpha: 0.7)
         pauseIcon.verticalAlignmentMode = .center
         pauseIcon.horizontalAlignmentMode = .center
         pauseButton.addChild(pauseIcon)
         addChild(pauseButton)
 
-        // Player name
+        // === MIDDLE: Player name (line 1) + ❤️ lives (line 2) ===
+        let midX = size.width / 2
+
         let profile = GameManager.shared.currentProfile
-        playerNameLabel = SKLabelNode(text: profile?.name ?? "")
+        playerNameLabel = SKLabelNode(text: (profile?.name ?? "").uppercased())
         playerNameLabel.fontName = "AvenirNext-Bold"
-        playerNameLabel.fontSize = 14
-        playerNameLabel.fontColor = SKColor(white: 0.85, alpha: 1.0)
-        playerNameLabel.horizontalAlignmentMode = .left
+        playerNameLabel.fontSize = 16
+        playerNameLabel.fontColor = .white
+        playerNameLabel.horizontalAlignmentMode = .center
         playerNameLabel.verticalAlignmentMode = .center
-        playerNameLabel.position = CGPoint(x: 56, y: row1Y)
+        playerNameLabel.position = CGPoint(x: midX, y: barCenterY + 10)
         addChild(playerNameLabel)
 
-        // Score
-        scoreLabel = SKLabelNode(text: "0")
-        scoreLabel.fontName = "AvenirNext-Bold"
-        scoreLabel.fontSize = 20
-        scoreLabel.fontColor = .white
-        scoreLabel.horizontalAlignmentMode = .right
-        scoreLabel.verticalAlignmentMode = .center
-        scoreLabel.position = CGPoint(x: size.width - 15, y: row1Y)
-        addChild(scoreLabel)
-
-        // === ROW 2: Lives (left), Level (center), Streak (right) ===
-        let row2Y = row1Y - 26
-
-        // Lives: ❤️ 3
         livesLabel = SKLabelNode(text: "❤️ \(ageGroup.lives)")
         livesLabel.fontName = "AvenirNext-Bold"
         livesLabel.fontSize = 14
         livesLabel.fontColor = .white
-        livesLabel.horizontalAlignmentMode = .left
+        livesLabel.horizontalAlignmentMode = .center
         livesLabel.verticalAlignmentMode = .center
-        livesLabel.position = CGPoint(x: 15, y: row2Y)
+        livesLabel.position = CGPoint(x: midX, y: barCenterY - 10)
         addChild(livesLabel)
 
-        // Level
+        // === RIGHT: Score (line 1) + Level (line 2) ===
+        scoreLabel = SKLabelNode(text: "0")
+        scoreLabel.fontName = "AvenirNext-Bold"
+        scoreLabel.fontSize = 22
+        scoreLabel.fontColor = .white
+        scoreLabel.horizontalAlignmentMode = .right
+        scoreLabel.verticalAlignmentMode = .center
+        scoreLabel.position = CGPoint(x: size.width - 15, y: barCenterY + 8)
+        addChild(scoreLabel)
+
         levelLabel = SKLabelNode(text: "Level 1")
-        levelLabel.fontName = "AvenirNext-Bold"
-        levelLabel.fontSize = 13
+        levelLabel.fontName = "AvenirNext-Medium"
+        levelLabel.fontSize = 11
         levelLabel.fontColor = ageGroup.primaryColor
-        levelLabel.horizontalAlignmentMode = .center
+        levelLabel.horizontalAlignmentMode = .right
         levelLabel.verticalAlignmentMode = .center
-        levelLabel.position = CGPoint(x: size.width / 2, y: row2Y)
+        levelLabel.position = CGPoint(x: size.width - 15, y: barCenterY - 12)
         addChild(levelLabel)
 
-        // Streak
+        // Streak — kept for API compatibility, not displayed in bar
         streakLabel = SKLabelNode(text: "")
         streakLabel.fontName = "AvenirNext-Bold"
         streakLabel.fontSize = 14
         streakLabel.fontColor = SKColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0)
-        streakLabel.horizontalAlignmentMode = .right
-        streakLabel.verticalAlignmentMode = .center
-        streakLabel.position = CGPoint(x: size.width - 15, y: row2Y)
-        addChild(streakLabel)
 
-        // === QUESTION PANEL below HUD rows (top-anchored) ===
+        // === QUESTION PANEL below bar (top-anchored) ===
         problemDisplay = ProblemDisplayNode()
         problemDisplay.setup(ageGroup: ageGroup, width: size.width)
-        // Panel top edge is at this y position; it expands downward
-        problemDisplay.position = CGPoint(x: size.width / 2, y: row2Y - 12)
+        problemDisplay.position = CGPoint(x: size.width / 2, y: barCenterY - barHeight / 2 - 4)
         addChild(problemDisplay)
 
         // Beam position indicators above touch controls
@@ -148,7 +142,7 @@ final class HUDNode: SKNode {
     }
 
     func updateLevel(_ level: Int, topic: String) {
-        levelLabel.text = "Level \(level) · \(topic)"
+        levelLabel.text = "Lv.\(level) · \(topic)"
     }
 
     func updateScore(_ score: Int) {
@@ -165,18 +159,7 @@ final class HUDNode: SKNode {
     }
 
     func updateStreak(_ streak: Int) {
-        if streak >= 3 {
-            streakLabel.text = "🔥 x\(streak)"
-            if streak == 3 || streak == 5 {
-                let pop = SKAction.sequence([
-                    SKAction.scale(to: 1.5, duration: 0.15),
-                    SKAction.scale(to: 1.0, duration: 0.15)
-                ])
-                streakLabel.run(pop)
-            }
-        } else {
-            streakLabel.text = ""
-        }
+        // Streak feedback is handled via showMessage() — no bar display
     }
 
     func updateActiveBeam(_ beam: Int) {
@@ -253,7 +236,7 @@ final class HUDNode: SKNode {
     func handleTap(at sceneLocation: CGPoint) -> Bool {
         let localPos = convert(sceneLocation, from: scene!)
         let dist = hypot(localPos.x - pauseButton.position.x, localPos.y - pauseButton.position.y)
-        if dist < 30 {
+        if dist < 35 {
             let press = SKAction.sequence([
                 SKAction.scale(to: 0.85, duration: 0.05),
                 SKAction.scale(to: 1.0, duration: 0.1)

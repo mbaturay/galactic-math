@@ -104,6 +104,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         playerShip.currentBeam = currentBeam
         playerShip.setBeamAngle(beamGrid.beamAngle(at: currentBeam, y: enemyTargetY))
         addChild(playerShip)
+
+        // Highlight starting beam
+        beamGrid.setActiveBeam(currentBeam)
     }
 
     private func setupHUD() {
@@ -171,8 +174,12 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         audioManager.playLaser()
 
+        // Flash the active beam when laser fires
+        beamGrid.flashBeam(currentBeam)
+
         let laser = LaserBeam()
-        laser.setup(ageGroup: selectedAgeGroup)
+        let beamColors = selectedAgeGroup.beamColors
+        laser.setup(color: beamColors[currentBeam % beamColors.count])
         laser.beamIndex = currentBeam
         laser.zPosition = 15
         laser.position = playerShip.position
@@ -263,13 +270,24 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         playerShip.victorySpin()
 
-        // Streak effects
-        if gameManager.correctStreak == 3 {
+        // Streak audio
+        let streak = gameManager.correctStreak
+        if streak == 5 || streak == 10 {
+            audioManager.playCombo(streak)
+        } else if streak == 3 {
             audioManager.playCombo(3)
-            hud.showMessage("NICE! 🔥🔥🔥", color: .orange)
-        } else if gameManager.correctStreak == 5 {
-            audioManager.playCombo(5)
-            hud.showMessage("PERFECT! 🔥🔥🔥🔥🔥", color: .red)
+        }
+
+        // Adaptive message (streak milestones, speed-up, "go faster" — all handled centrally)
+        if let msg = AdaptiveDifficulty.shared.messageAfterCorrectAnswer(
+            timeTaken: timeTaken, streak: streak, isBossRound: bossNode != nil
+        ) {
+            run(SKAction.sequence([
+                SKAction.wait(forDuration: 0.5),
+                SKAction.run { [weak self] in
+                    self?.hud.showMessage(msg.text, color: msg.color)
+                }
+            ]))
         }
 
         // Star rating
@@ -288,16 +306,6 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         // Clear remaining enemies
         clearAllEnemies()
-
-        // Adaptive difficulty message
-        if let message = AdaptiveDifficulty.shared.encouragementMessage {
-            run(SKAction.sequence([
-                SKAction.wait(forDuration: 0.5),
-                SKAction.run { [weak self] in
-                    self?.hud.showMessage(message, color: .cyan)
-                }
-            ]))
-        }
 
         // Check for level complete (skip if boss is active — boss defeat triggers it)
         if gameManager.isLevelComplete() && bossNode == nil {
@@ -325,6 +333,16 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         playerShip.hitFlash()
         playerShip.showShield()
+
+        // Encouragement after consecutive wrong answers
+        if let msg = AdaptiveDifficulty.shared.messageAfterWrongAnswer(isBossRound: bossNode != nil) {
+            run(SKAction.sequence([
+                SKAction.wait(forDuration: 0.5),
+                SKAction.run { [weak self] in
+                    self?.hud.showMessage(msg.text, color: msg.color)
+                }
+            ]))
+        }
 
         if gameManager.isGameOver() {
             gameOver()
@@ -544,10 +562,14 @@ final class GameScene: SKScene, WaveManagerDelegate {
             let newX = beamGrid.beamXAtY(enemy.beamIndex, y: enemy.position.y)
             enemy.position.x = newX
 
-            // Scale based on Y position (perspective)
+            // Perspective scaling with acceleration in bottom half
             let progress = 1.0 - (enemy.position.y - enemyTargetY) / (enemyStartY - enemyTargetY)
-            let scale = 0.3 + progress * 0.7
-            enemy.setScale(min(max(scale, 0.3), 1.0))
+            let p = min(max(progress, 0), 1)
+            // Quadratic ease-in: slow at top, fast rush at bottom
+            let eased = p * p
+            // Scale from 0.3 → 1.2 (1.2x at very bottom for urgency)
+            let scale = 0.3 + eased * 0.9
+            enemy.setScale(min(scale, 1.2))
 
             // Check if reached bottom
             if enemy.position.y <= enemyTargetY {

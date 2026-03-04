@@ -97,25 +97,17 @@ enum AgeGroup: String, CaseIterable, Codable {
         switch self {
         case .cadet:
             return [
-                SKColor.red,
-                SKColor.green,
-                SKColor.blue
+                SKColor(red: 1.0, green: 0.27, blue: 0.27, alpha: 1.0),   // Red
+                SKColor(red: 0.27, green: 1.0, blue: 0.27, alpha: 1.0),   // Green
+                SKColor(red: 0.27, green: 0.27, blue: 1.0, alpha: 1.0)    // Blue
             ]
-        case .pilot:
+        case .pilot, .ace:
             return [
-                SKColor(red: 0.0, green: 0.6, blue: 1.0, alpha: 1.0),
-                SKColor(red: 0.0, green: 0.8, blue: 0.9, alpha: 1.0),
-                SKColor(red: 0.0, green: 1.0, blue: 0.8, alpha: 1.0),
-                SKColor(red: 0.0, green: 0.8, blue: 0.9, alpha: 1.0),
-                SKColor(red: 0.0, green: 0.6, blue: 1.0, alpha: 1.0)
-            ]
-        case .ace:
-            return [
-                SKColor(red: 0.6, green: 0.2, blue: 1.0, alpha: 1.0),
-                SKColor(red: 0.8, green: 0.3, blue: 0.9, alpha: 1.0),
-                SKColor(red: 1.0, green: 0.4, blue: 0.8, alpha: 1.0),
-                SKColor(red: 0.8, green: 0.3, blue: 0.9, alpha: 1.0),
-                SKColor(red: 0.6, green: 0.2, blue: 1.0, alpha: 1.0)
+                SKColor(red: 1.0, green: 0.27, blue: 0.27, alpha: 1.0),   // Red
+                SKColor(red: 1.0, green: 0.53, blue: 0.27, alpha: 1.0),   // Orange
+                SKColor(red: 0.27, green: 1.0, blue: 0.27, alpha: 1.0),   // Green
+                SKColor(red: 0.27, green: 1.0, blue: 1.0, alpha: 1.0),    // Cyan
+                SKColor(red: 0.27, green: 0.27, blue: 1.0, alpha: 1.0)    // Blue
             ]
         }
     }
