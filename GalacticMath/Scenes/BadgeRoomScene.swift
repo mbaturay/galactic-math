@@ -13,6 +13,17 @@ final class BadgeRoomScene: SKScene {
     }
     private var badgeInfoMap: [String: BadgeInfo] = [:]
 
+    // Scroll infrastructure
+    private var cropNode: SKCropNode!
+    private var scrollContainer: SKNode!
+    private var scrollableHeight: CGFloat = 0
+    private var visibleHeight: CGFloat = 0
+    private var scrollOffset: CGFloat = 0
+    private var lastTouchY: CGFloat = 0
+    private var isDragging = false
+    private var scrollVelocity: CGFloat = 0
+    private var lastTouchTime: TimeInterval = 0
+
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.03, green: 0.01, blue: 0.1, alpha: 1.0)
 
@@ -41,14 +52,37 @@ final class BadgeRoomScene: SKScene {
         title.zPosition = 100
         addChild(title)
 
-        // Stats section
-        let statsY = layoutStats(profile: profile, below: contentStartY)
+        // Stats section (fixed on scene)
+        let statsBottomY = layoutStats(profile: profile, below: contentStartY)
 
-        // Badge matrix
-        let matrixY = layoutMatrix(profile: profile, below: statsY - 14)
+        // Scroll container setup
+        let scrollTop = statsBottomY - 14
+        let scrollBottom: CGFloat = 20
+        visibleHeight = scrollTop - scrollBottom
 
-        // Special badges
-        layoutSpecialBadges(profile: profile, below: matrixY - 14)
+        cropNode = SKCropNode()
+        cropNode.position = CGPoint(x: 0, y: scrollBottom)
+        cropNode.zPosition = 10
+
+        let mask = SKSpriteNode(color: .white, size: CGSize(width: size.width, height: visibleHeight))
+        mask.anchorPoint = CGPoint(x: 0, y: 0)
+        cropNode.maskNode = mask
+
+        scrollContainer = SKNode()
+        cropNode.addChild(scrollContainer)
+        addChild(cropNode)
+
+        // Badge matrix (into scrollContainer)
+        let matrixBottomY = layoutMatrix(profile: profile, startY: visibleHeight)
+
+        // Special badges (into scrollContainer)
+        let contentBottomY = layoutSpecialBadges(profile: profile, below: matrixBottomY - 14)
+
+        // Calculate scrollable range
+        let totalContentHeight = visibleHeight - contentBottomY
+        scrollableHeight = max(0, totalContentHeight - visibleHeight)
+        scrollOffset = 0
+        scrollContainer.position.y = 0
     }
 
     // MARK: - Stats Section
@@ -106,9 +140,9 @@ final class BadgeRoomScene: SKScene {
         return pillY - 14
     }
 
-    // MARK: - Badge Matrix
+    // MARK: - Badge Matrix (into scrollContainer)
 
-    private func layoutMatrix(profile: PlayerProfile, below topY: CGFloat) -> CGFloat {
+    private func layoutMatrix(profile: PlayerProfile, startY: CGFloat) -> CGFloat {
         let cellSize: CGFloat = 54
         let gradSize: CGFloat = 62
         let labelW: CGFloat = 28
@@ -126,7 +160,7 @@ final class BadgeRoomScene: SKScene {
         let rowHeight = gradSize + spacing
         let currentGrade = profile.currentGrade
 
-        var yPos = topY
+        var yPos = startY
 
         for grade in Grade.allCases {
             let badges = Badge.badgesForGrade(grade)
@@ -142,7 +176,7 @@ final class BadgeRoomScene: SKScene {
                 bg.lineWidth = 1
                 bg.position = CGPoint(x: originX + matrixW / 2, y: yPos - (gradSize / 2 - 2))
                 bg.zPosition = 5
-                addChild(bg)
+                scrollContainer.addChild(bg)
             }
 
             // Row label
@@ -154,7 +188,7 @@ final class BadgeRoomScene: SKScene {
             rowLabel.verticalAlignmentMode = .center
             rowLabel.position = CGPoint(x: originX, y: yPos - gradSize / 2 + 2)
             rowLabel.zPosition = 10
-            addChild(rowLabel)
+            scrollContainer.addChild(rowLabel)
 
             // Badge cells
             var cellX = originX + labelW + spacing
@@ -214,7 +248,7 @@ final class BadgeRoomScene: SKScene {
                 emojiLabel.alpha = earned ? 1.0 : 0.25
                 container.addChild(emojiLabel)
 
-                addChild(container)
+                scrollContainer.addChild(container)
                 cellX += thisSize + spacing
             }
 
@@ -224,16 +258,16 @@ final class BadgeRoomScene: SKScene {
         return yPos
     }
 
-    // MARK: - Special Badges (2 rows of 5)
+    // MARK: - Special Badges (2 rows of 5, into scrollContainer)
 
-    private func layoutSpecialBadges(profile: PlayerProfile, below topY: CGFloat) {
+    private func layoutSpecialBadges(profile: PlayerProfile, below topY: CGFloat) -> CGFloat {
         let header = SKLabelNode(text: "SPECIAL ACHIEVEMENTS")
         header.fontName = "AvenirNext-Bold"
         header.fontSize = 10
         header.fontColor = SKColor(white: 0.5, alpha: 0.8)
         header.position = CGPoint(x: size.width / 2, y: topY)
         header.zPosition = 10
-        addChild(header)
+        scrollContainer.addChild(header)
 
         let specials = Badge.specialBadges  // 10 badges
         let cellSize: CGFloat = 54
@@ -241,6 +275,8 @@ final class BadgeRoomScene: SKScene {
         let perRow = 5
         let rowW = CGFloat(perRow) * cellSize + CGFloat(perRow - 1) * spacing
         let startX = (size.width - rowW) / 2 + cellSize / 2
+
+        var lowestY = topY
 
         for (i, badge) in specials.enumerated() {
             let row = i / perRow      // 0 or 1
@@ -281,8 +317,15 @@ final class BadgeRoomScene: SKScene {
             emojiLabel.alpha = earned ? 1.0 : 0.25
             container.addChild(emojiLabel)
 
-            addChild(container)
+            scrollContainer.addChild(container)
+
+            let bottomEdge = y - cellSize / 2
+            if bottomEdge < lowestY {
+                lowestY = bottomEdge
+            }
         }
+
+        return lowestY
     }
 
     // MARK: - Back Button
@@ -306,6 +349,12 @@ final class BadgeRoomScene: SKScene {
         backBtn.addChild(backLabel)
 
         addChild(backBtn)
+    }
+
+    // MARK: - Scroll Helpers
+
+    private func clampScrollOffset() {
+        scrollOffset = max(0, min(scrollOffset, scrollableHeight))
     }
 
     // MARK: - Badge Popup
@@ -463,7 +512,6 @@ final class BadgeRoomScene: SKScene {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
 
         // Dismiss popup on any tap
         if popupVisible {
@@ -471,9 +519,53 @@ final class BadgeRoomScene: SKScene {
             return
         }
 
+        let location = touch.location(in: self)
+        lastTouchY = location.y
+        lastTouchTime = touch.timestamp
+        isDragging = false
+        scrollVelocity = 0
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        if popupVisible { return }
+
+        let location = touch.location(in: self)
+        let deltaY = location.y - lastTouchY
+
+        if !isDragging && abs(deltaY) > 5 {
+            isDragging = true
+        }
+
+        if isDragging {
+            scrollOffset -= deltaY
+            clampScrollOffset()
+            scrollContainer.position.y = scrollOffset
+
+            let dt = touch.timestamp - lastTouchTime
+            if dt > 0 {
+                scrollVelocity = deltaY / CGFloat(dt)
+            }
+            lastTouchY = location.y
+            lastTouchTime = touch.timestamp
+        }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        if popupVisible { return }
+
+        if isDragging {
+            // Momentum — velocity is already tracked
+            isDragging = false
+            return
+        }
+
+        // It was a tap
+        let location = touch.location(in: self)
         AudioManager.shared.playMenuTap()
 
-        // Back button
+        // Back button (on self)
         if let backBtn = childNode(withName: "backButton") {
             let dist = hypot(location.x - backBtn.position.x, location.y - backBtn.position.y)
             if dist < 50 {
@@ -484,10 +576,11 @@ final class BadgeRoomScene: SKScene {
             }
         }
 
-        // Find tapped badge
+        // Badge tap (in scrollContainer coordinate space)
+        let scrollLocation = touch.location(in: scrollContainer)
         for (nodeName, info) in badgeInfoMap {
-            if let node = childNode(withName: nodeName) {
-                let dist = hypot(location.x - node.position.x, location.y - node.position.y)
+            if let node = scrollContainer.childNode(withName: nodeName) {
+                let dist = hypot(scrollLocation.x - node.position.x, scrollLocation.y - node.position.y)
                 if dist < 34 {
                     showBadgePopup(info: info)
                     return
@@ -496,7 +589,23 @@ final class BadgeRoomScene: SKScene {
         }
     }
 
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        isDragging = false
+        scrollVelocity = 0
+    }
+
+    // MARK: - Update
+
     override func update(_ currentTime: TimeInterval) {
         starField?.update(deltaTime: 1.0 / 60.0)
+
+        if !isDragging && abs(scrollVelocity) > 1 {
+            scrollOffset -= scrollVelocity * (1.0 / 60.0)
+            scrollVelocity *= 0.92
+            clampScrollOffset()
+            scrollContainer.position.y = scrollOffset
+        } else if !isDragging {
+            scrollVelocity = 0
+        }
     }
 }

@@ -18,8 +18,8 @@ final class GameOverScene: SKScene {
 
         // Title
         let titleText = bossDestroyedPlayer
-            ? "YOUR PLANET HAS BEEN DESTROYED BY THE SENTINEL! \u{1F4A5}"
-            : "MISSION FAILED!\nYOUR SHIP WAS DESTROYED! \u{1F680}"
+            ? "YOUR PLANET WAS DESTROYED! \u{1F4A5}"
+            : "MISSION FAILED! YOUR SHIP WAS DESTROYED! \u{1F680}"
         let title = SKLabelNode(text: titleText)
         title.fontName = "AvenirNext-Heavy"
         title.fontSize = min(size.width * 0.08, 32)

@@ -15,18 +15,18 @@ extension SKScene {
             .first?.windows.first?.safeAreaInsets.top ?? 59
     }
 
-    /// Y position for back/nav buttons: screenHeight - safeTop - 22
+    /// Y position for back/nav buttons: in the notch zone (beside Dynamic Island)
     var navBarY: CGFloat {
-        return size.height - safeTop - 22
+        return size.height - (safeTop / 2)
     }
 
-    /// Y position for the page title: screenHeight - safeTop - 50
+    /// Y position for the page title: just below safe area
     var titleSafeY: CGFloat {
-        return size.height - safeTop - 50
+        return size.height - safeTop - 40
     }
 
-    /// Y position for first content element: screenHeight - safeTop - 120
+    /// Y position for first content element: below title
     var contentStartY: CGFloat {
-        return size.height - safeTop - 120
+        return size.height - safeTop - 110
     }
 }

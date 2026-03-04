@@ -18,7 +18,7 @@ final class TitleScene: SKScene {
         titleLabel.fontName = "AvenirNext-Heavy"
         titleLabel.fontSize = min(size.width * 0.11, 52)
         titleLabel.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        titleLabel.position = CGPoint(x: size.width / 2, y: titleSafeY)
+        titleLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.68)
         titleLabel.zPosition = 10
         addChild(titleLabel)
 
@@ -40,7 +40,7 @@ final class TitleScene: SKScene {
         subtitleLabel.fontName = "AvenirNext-Medium"
         subtitleLabel.fontSize = min(size.width * 0.05, 22)
         subtitleLabel.fontColor = SKColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0)
-        subtitleLabel.position = CGPoint(x: size.width / 2, y: titleSafeY - 40)
+        subtitleLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.68 - 40)
         subtitleLabel.zPosition = 10
         addChild(subtitleLabel)
 

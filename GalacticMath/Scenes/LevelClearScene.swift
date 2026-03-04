@@ -24,7 +24,7 @@ final class LevelClearScene: SKScene {
         // Title
         let topY = titleSafeY
 
-        let title = SKLabelNode(text: "LEVEL COMPLETE!")
+        let title = SKLabelNode(text: "LEVEL COMPLETE! \u{2B50}")
         title.fontName = "AvenirNext-Heavy"
         title.fontSize = min(size.width * 0.09, 40)
         title.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
