@@ -1,26 +1,32 @@
 import Foundation
 
 struct PlayerProfile: Codable {
+    let slotIndex: Int
     var name: String
+    var avatar: String
     var ageGroup: AgeGroup
-    var avatarIndex: Int
     var currentLevel: Int
     var highScore: Int
     var totalCorrect: Int
     var totalAttempted: Int
     var topicAccuracy: [String: TopicStats]
     var totalPlayTime: TimeInterval
+    var createdDate: Date
+    var lastPlayedDate: Date
 
-    init(name: String, ageGroup: AgeGroup, avatarIndex: Int = 0) {
+    init(slotIndex: Int, name: String, avatar: String, ageGroup: AgeGroup) {
+        self.slotIndex = slotIndex
         self.name = name
+        self.avatar = avatar
         self.ageGroup = ageGroup
-        self.avatarIndex = avatarIndex
         self.currentLevel = 1
         self.highScore = 0
         self.totalCorrect = 0
         self.totalAttempted = 0
         self.topicAccuracy = [:]
         self.totalPlayTime = 0
+        self.createdDate = Date()
+        self.lastPlayedDate = Date()
     }
 }
 

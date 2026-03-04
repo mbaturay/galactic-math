@@ -110,8 +110,8 @@ final class GameScene: SKScene, WaveManagerDelegate {
         hud = HUDNode()
         let safeTop = view?.safeAreaInsets.top ?? 0
         hud.setup(size: size, ageGroup: selectedAgeGroup, safeAreaTop: safeTop)
-        hud.onBackTapped = { [weak self] in
-            self?.navigateBack()
+        hud.onPauseTapped = { [weak self] in
+            self?.showPauseOverlay()
         }
         addChild(hud)
     }
@@ -122,7 +122,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         addChild(touchControls)
 
         touchControls.onBackTap = { [weak self] in
-            self?.navigateBack()
+            self?.showPauseOverlay()
         }
         touchControls.onMoveLeft = { [weak self] in
             self?.movePlayerLeft()
@@ -234,9 +234,8 @@ final class GameScene: SKScene, WaveManagerDelegate {
     }
 
     private func checkTorpedoHits() {
-        guard let boss = bossNode, let problem = boss.problem else { return }
+        guard bossNode != nil else { return }
 
-        // For boss, check if player is on correct beam
         for enemy in enemies {
             if enemy.beamIndex == currentBeam && enemy.parent != nil && enemy.isCorrect {
                 let timeTaken = CACurrentMediaTime() - problemStartTime
@@ -267,10 +266,10 @@ final class GameScene: SKScene, WaveManagerDelegate {
         // Streak effects
         if gameManager.correctStreak == 3 {
             audioManager.playCombo(3)
-            hud.showMessage("HOT STREAK! \u{1F525}", color: .orange)
+            hud.showMessage("NICE! 🔥🔥🔥", color: .orange)
         } else if gameManager.correctStreak == 5 {
             audioManager.playCombo(5)
-            hud.showMessage("ON FIRE! \u{1F525}\u{1F525}", color: .red)
+            hud.showMessage("PERFECT! 🔥🔥🔥🔥🔥", color: .red)
         }
 
         // Star rating
@@ -332,6 +331,8 @@ final class GameScene: SKScene, WaveManagerDelegate {
         }
     }
 
+    // MARK: - Boss
+
     private func handleBossDestroyed() {
         guard let boss = bossNode else { return }
 
@@ -353,6 +354,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         bossNode = nil
         clearAllEnemies()
+        touchControls.switchToNormalMode()
 
         // Boss defeated completes the level
         if gameManager.isLevelComplete() {
@@ -363,6 +365,15 @@ final class GameScene: SKScene, WaveManagerDelegate {
                 }
             ]))
         }
+    }
+
+    private func handleBossEscaped() {
+        guard let boss = bossNode else { return }
+        boss.destroy { }
+        bossNode = nil
+        clearAllEnemies()
+        touchControls.switchToNormalMode()
+        hud.showMessage("Boss escaped!", color: .orange)
     }
 
     private func showStarRating(_ stars: Int, at position: CGPoint) {
@@ -383,8 +394,14 @@ final class GameScene: SKScene, WaveManagerDelegate {
     // MARK: - WaveManagerDelegate
 
     func waveManagerDidRequestNewProblem(_ problem: MathProblem) {
+        // If boss was active but new normal problem started, boss escaped
+        if bossNode != nil {
+            handleBossEscaped()
+        }
+
         problemStartTime = CACurrentMediaTime()
-        hud.problemDisplay.showProblem(problem.question)
+        let topicName = problem.topic.displayName
+        hud.problemDisplay.showProblem(problem.question, topic: topicName)
         hud.problemDisplay.startPulse()
 
         let topics = MathTopic.topics(for: selectedAgeGroup, level: gameManager.currentLevel)
@@ -427,6 +444,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
     func waveManagerBossRound(_ problem: MathProblem) {
         audioManager.playBossAppear()
 
+        // Dramatic entrance — flash screen edge red
+        hud.flashScreenEdge(color: .red)
+
         // Screen shake
         let shake = SKAction.sequence([
             SKAction.moveBy(x: -5, y: 3, duration: 0.05),
@@ -436,7 +456,10 @@ final class GameScene: SKScene, WaveManagerDelegate {
         ])
         run(SKAction.repeat(shake, count: 3))
 
-        hud.showMessage("SECTOR SENTINEL!", color: .red)
+        hud.showMessage("⚠️ BOSS INCOMING! ⚠️", color: .red)
+
+        // Switch button to TORPEDO
+        touchControls.switchToBossMode()
 
         let boss = SectorSentinel()
         boss.setup(ageGroup: selectedAgeGroup, sceneSize: size)
@@ -449,9 +472,12 @@ final class GameScene: SKScene, WaveManagerDelegate {
             guard let self = self else { return }
             boss.showProblem(problem)
             self.problemStartTime = CACurrentMediaTime()
-            self.hud.problemDisplay.showProblem(problem.question)
+            self.hud.problemDisplay.showProblem(problem.question, topic: "BOSS ROUND")
             self.hud.problemDisplay.startPulse()
             self.spawnEnemies(for: problem)
+
+            // Show torpedo instruction after boss appears
+            self.hud.showMessage("USE TORPEDO TO DEFEAT THE BOSS!", color: .orange)
         }
     }
 
@@ -574,9 +600,12 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     // MARK: - Pause
 
+    private var showingQuitConfirm = false
+
     private func showPauseOverlay() {
         guard pauseOverlay == nil else { return }
         isPaused_ = true
+        showingQuitConfirm = false
 
         let overlay = SKNode()
         overlay.zPosition = 1000
@@ -591,37 +620,120 @@ final class GameScene: SKScene, WaveManagerDelegate {
         label.fontName = "AvenirNext-Bold"
         label.fontSize = 40
         label.fontColor = .white
-        label.position = CGPoint(x: size.width / 2, y: size.height / 2 + 20)
+        label.position = CGPoint(x: size.width / 2, y: size.height / 2 + 60)
         overlay.addChild(label)
 
-        let tapLabel = SKLabelNode(text: "Tap to Resume")
-        tapLabel.fontName = "AvenirNext-Medium"
-        tapLabel.fontSize = 20
-        tapLabel.fontColor = SKColor(white: 0.7, alpha: 1.0)
-        tapLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 30)
-        overlay.addChild(tapLabel)
+        // Resume button
+        let resumeBtn = createPauseButton(text: "Resume", color: SKColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0))
+        resumeBtn.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        resumeBtn.name = "pauseResume"
+        overlay.addChild(resumeBtn)
 
-        let pulse = SKAction.sequence([
-            SKAction.fadeAlpha(to: 0.3, duration: 0.8),
-            SKAction.fadeAlpha(to: 1.0, duration: 0.8)
-        ])
-        tapLabel.run(SKAction.repeatForever(pulse))
+        // Main Menu button
+        let menuBtn = createPauseButton(text: "Main Menu", color: SKColor(white: 0.5, alpha: 1.0))
+        menuBtn.position = CGPoint(x: size.width / 2, y: size.height / 2 - 60)
+        menuBtn.name = "pauseMenu"
+        overlay.addChild(menuBtn)
 
         overlay.name = "pauseOverlay"
         addChild(overlay)
         pauseOverlay = overlay
     }
 
+    private func showQuitConfirm() {
+        guard let overlay = pauseOverlay else { return }
+        showingQuitConfirm = true
+
+        // Remove existing buttons
+        overlay.children.filter { $0.name == "pauseResume" || $0.name == "pauseMenu" }
+            .forEach { $0.removeFromParent() }
+        overlay.children.filter { $0 is SKLabelNode }.forEach { $0.removeFromParent() }
+
+        let msg = SKLabelNode(text: "Quit game?")
+        msg.fontName = "AvenirNext-Bold"
+        msg.fontSize = 28
+        msg.fontColor = .white
+        msg.position = CGPoint(x: size.width / 2, y: size.height / 2 + 50)
+        overlay.addChild(msg)
+
+        let sub = SKLabelNode(text: "Progress will be lost")
+        sub.fontName = "AvenirNext-Medium"
+        sub.fontSize = 16
+        sub.fontColor = SKColor(white: 0.7, alpha: 1.0)
+        sub.position = CGPoint(x: size.width / 2, y: size.height / 2 + 20)
+        overlay.addChild(sub)
+
+        let quitBtn = createPauseButton(text: "Quit", color: SKColor(red: 0.7, green: 0.2, blue: 0.2, alpha: 1.0))
+        quitBtn.position = CGPoint(x: size.width / 2, y: size.height / 2 - 30)
+        quitBtn.name = "confirmQuit"
+        overlay.addChild(quitBtn)
+
+        let cancelBtn = createPauseButton(text: "Cancel", color: SKColor(white: 0.5, alpha: 1.0))
+        cancelBtn.position = CGPoint(x: size.width / 2, y: size.height / 2 - 90)
+        cancelBtn.name = "cancelQuit"
+        overlay.addChild(cancelBtn)
+    }
+
+    private func createPauseButton(text: String, color: SKColor) -> SKNode {
+        let btn = SKNode()
+        let btnSize = CGSize(width: min(size.width * 0.6, 200), height: 44)
+        let bg = SKShapeNode(rectOf: btnSize, cornerRadius: 12)
+        bg.fillColor = color.withAlphaComponent(0.3)
+        bg.strokeColor = color.withAlphaComponent(0.8)
+        bg.lineWidth = 2.0
+        btn.addChild(bg)
+
+        let label = SKLabelNode(text: text)
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = 18
+        label.fontColor = .white
+        label.verticalAlignmentMode = .center
+        btn.addChild(label)
+
+        return btn
+    }
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if isPaused_ {
-            pauseOverlay?.removeFromParent()
-            pauseOverlay = nil
-            isPaused_ = false
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+
+        if isPaused_, let overlay = pauseOverlay {
+            // Handle pause menu taps
+            for child in overlay.children {
+                guard let name = child.name else { continue }
+                let dist = hypot(location.x - child.position.x, location.y - child.position.y)
+                if dist < 80 {
+                    if name == "pauseResume" {
+                        pauseOverlay?.removeFromParent()
+                        pauseOverlay = nil
+                        isPaused_ = false
+                        showingQuitConfirm = false
+                        return
+                    }
+                    if name == "pauseMenu" {
+                        showQuitConfirm()
+                        return
+                    }
+                    if name == "confirmQuit" {
+                        pauseOverlay?.removeFromParent()
+                        pauseOverlay = nil
+                        isPaused_ = false
+                        navigateBack()
+                        return
+                    }
+                    if name == "cancelQuit" {
+                        // Go back to pause menu
+                        pauseOverlay?.removeFromParent()
+                        pauseOverlay = nil
+                        showingQuitConfirm = false
+                        showPauseOverlay()
+                        return
+                    }
+                }
+            }
             return
         }
 
-        guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
         if hud.handleTap(at: location) {
             return
         }

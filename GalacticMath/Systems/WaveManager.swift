@@ -76,6 +76,7 @@ final class WaveManager {
         delegate?.waveManagerEnemyReachedBottom()
 
         if attemptCount >= maxAttempts {
+            isBossActive = false
             isWaitingForNext = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
                 self?.isWaitingForNext = false

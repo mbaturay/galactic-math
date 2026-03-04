@@ -1,11 +1,14 @@
 import SpriteKit
 
 final class TouchControlsNode: SKNode {
-    private var fireButton: SKShapeNode!
-    private var torpedoButton: SKShapeNode!
+    private var actionButton: SKNode!
+    private var actionBg: SKShapeNode!
+    private var actionLabel: SKLabelNode!
 
     private var sceneSize: CGSize = .zero
     private var ageGroup: AgeGroup = .cadet
+    private var isBossMode = false
+    private var buttonRect: CGRect = .zero
 
     var onMoveLeft: (() -> Void)?
     var onMoveRight: (() -> Void)?
@@ -27,43 +30,54 @@ final class TouchControlsNode: SKNode {
         hitArea.strokeColor = .clear
         addChild(hitArea)
 
-        let buttonSize: CGFloat = ageGroup == .cadet ? 60 : 52
-        let buttonAlpha: CGFloat = 0.25
-        let bottomY: CGFloat = buttonSize / 2 + 12
-        let centerX = size.width / 2
-        let actionSpacing: CGFloat = buttonSize * 0.7
+        // Full-width FIRE button at bottom
+        let margin: CGFloat = 20
+        let btnWidth = size.width - margin * 2
+        let btnHeight: CGFloat = 70
+        let btnY: CGFloat = btnHeight / 2 + 12
 
-        // FIRE button - bottom center-left
-        fireButton = SKShapeNode(circleOfRadius: buttonSize / 2)
-        fireButton.position = CGPoint(x: centerX - actionSpacing, y: bottomY)
-        fireButton.fillColor = ageGroup.primaryColor.withAlphaComponent(buttonAlpha)
-        fireButton.strokeColor = ageGroup.primaryColor.withAlphaComponent(0.6)
-        fireButton.lineWidth = 2.0
-        fireButton.name = "fireButton"
-        addChild(fireButton)
+        buttonRect = CGRect(x: margin, y: btnY - btnHeight / 2, width: btnWidth, height: btnHeight)
 
-        let fireLabel = SKLabelNode(text: "FIRE")
-        fireLabel.fontName = "AvenirNext-Bold"
-        fireLabel.fontSize = ageGroup == .cadet ? 13 : 11
-        fireLabel.fontColor = .white
-        fireLabel.verticalAlignmentMode = .center
-        fireButton.addChild(fireLabel)
+        actionButton = SKNode()
+        actionButton.position = CGPoint(x: size.width / 2, y: btnY)
+        actionButton.zPosition = 501
+        addChild(actionButton)
 
-        // TORP button - bottom center-right
-        torpedoButton = SKShapeNode(circleOfRadius: buttonSize / 2)
-        torpedoButton.position = CGPoint(x: centerX + actionSpacing, y: bottomY)
-        torpedoButton.fillColor = SKColor(red: 1.0, green: 0.6, blue: 0.0, alpha: buttonAlpha)
-        torpedoButton.strokeColor = SKColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 0.6)
-        torpedoButton.lineWidth = 2.0
-        torpedoButton.name = "torpedoButton"
-        addChild(torpedoButton)
+        actionBg = SKShapeNode(rectOf: CGSize(width: btnWidth, height: btnHeight), cornerRadius: 14)
+        actionBg.fillColor = ageGroup.primaryColor.withAlphaComponent(0.25)
+        actionBg.strokeColor = ageGroup.primaryColor.withAlphaComponent(0.6)
+        actionBg.lineWidth = 2.0
+        actionButton.addChild(actionBg)
 
-        let torpLabel = SKLabelNode(text: "TORP")
-        torpLabel.fontName = "AvenirNext-Bold"
-        torpLabel.fontSize = ageGroup == .cadet ? 13 : 11
-        torpLabel.fontColor = .white
-        torpLabel.verticalAlignmentMode = .center
-        torpedoButton.addChild(torpLabel)
+        actionLabel = SKLabelNode(text: "FIRE")
+        actionLabel.fontName = "AvenirNext-Bold"
+        actionLabel.fontSize = ageGroup == .cadet ? 22 : 20
+        actionLabel.fontColor = .white
+        actionLabel.verticalAlignmentMode = .center
+        actionButton.addChild(actionLabel)
+    }
+
+    func switchToBossMode() {
+        isBossMode = true
+        let flash = SKAction.sequence([
+            SKAction.run { [weak self] in
+                self?.actionBg.fillColor = SKColor(red: 1.0, green: 0.3, blue: 0.0, alpha: 0.35)
+                self?.actionBg.strokeColor = SKColor(red: 1.0, green: 0.4, blue: 0.0, alpha: 0.8)
+                self?.actionLabel.text = "TORPEDO"
+            },
+            SKAction.scale(to: 1.1, duration: 0.1),
+            SKAction.scale(to: 1.0, duration: 0.1),
+            SKAction.scale(to: 1.05, duration: 0.1),
+            SKAction.scale(to: 1.0, duration: 0.1)
+        ])
+        actionButton.run(flash)
+    }
+
+    func switchToNormalMode() {
+        isBossMode = false
+        actionBg.fillColor = ageGroup.primaryColor.withAlphaComponent(0.25)
+        actionBg.strokeColor = ageGroup.primaryColor.withAlphaComponent(0.6)
+        actionLabel.text = "FIRE"
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -81,25 +95,18 @@ final class TouchControlsNode: SKNode {
             return
         }
 
-        let buttonRadius: CGFloat = ageGroup == .cadet ? 38 : 32
-
-        // FIRE button — check first so it takes priority over tap zones
-        let fireDistance = hypot(location.x - fireButton.position.x, location.y - fireButton.position.y)
-        if fireDistance < buttonRadius {
-            pressButton(fireButton)
-            onFire?()
+        // Check fire/torpedo button area
+        if buttonRect.contains(location) {
+            pressButton()
+            if isBossMode {
+                onTorpedo?()
+            } else {
+                onFire?()
+            }
             return
         }
 
-        // TORP button
-        let torpDistance = hypot(location.x - torpedoButton.position.x, location.y - torpedoButton.position.y)
-        if torpDistance < buttonRadius {
-            pressButton(torpedoButton)
-            onTorpedo?()
-            return
-        }
-
-        // Left/right tap zones — entire screen halves
+        // Left/right tap zones — screen halves above button
         let midX = sceneSize.width / 2
         if location.x < midX {
             onMoveLeft?()
@@ -108,10 +115,10 @@ final class TouchControlsNode: SKNode {
         }
     }
 
-    private func pressButton(_ button: SKShapeNode) {
+    private func pressButton() {
         let press = SKAction.sequence([
             SKAction.group([
-                SKAction.scale(to: 0.9, duration: 0.05),
+                SKAction.scale(to: 0.95, duration: 0.05),
                 SKAction.fadeAlpha(to: 0.8, duration: 0.05)
             ]),
             SKAction.group([
@@ -119,6 +126,6 @@ final class TouchControlsNode: SKNode {
                 SKAction.fadeAlpha(to: 1.0, duration: 0.1)
             ])
         ])
-        button.run(press)
+        actionButton.run(press)
     }
 }

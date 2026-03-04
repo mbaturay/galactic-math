@@ -43,12 +43,20 @@ final class GameOverScene: SKScene {
         msgLabel.zPosition = 10
         addChild(msgLabel)
 
+        // Player avatar
+        let avatar = gm.currentProfile?.avatar ?? "🚀"
+        let avatarLabel = SKLabelNode(text: avatar)
+        avatarLabel.fontSize = 50
+        avatarLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.61)
+        avatarLabel.zPosition = 10
+        addChild(avatarLabel)
+
         // Score
         let scoreLabel = SKLabelNode(text: "Score: \(gm.score)")
         scoreLabel.fontName = "AvenirNext-Bold"
         scoreLabel.fontSize = 28
         scoreLabel.fontColor = selectedAgeGroup.primaryColor
-        scoreLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.55)
+        scoreLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         scoreLabel.zPosition = 10
         addChild(scoreLabel)
 
@@ -57,7 +65,7 @@ final class GameOverScene: SKScene {
         levelLabel.fontName = "AvenirNext-Medium"
         levelLabel.fontSize = 18
         levelLabel.fontColor = .white
-        levelLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.48)
+        levelLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.45)
         levelLabel.zPosition = 10
         addChild(levelLabel)
 

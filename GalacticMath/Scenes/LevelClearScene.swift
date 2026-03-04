@@ -82,8 +82,9 @@ final class LevelClearScene: SKScene {
         )
         addChild(menuBtn)
 
-        // Flying rocket
-        let rocket = SKLabelNode(text: "\u{1F680}")
+        // Flying avatar
+        let avatarEmoji = GameManager.shared.currentProfile?.avatar ?? "🚀"
+        let rocket = SKLabelNode(text: avatarEmoji)
         rocket.fontSize = 40
         rocket.position = CGPoint(x: -50, y: size.height * 0.5)
         rocket.zPosition = 5

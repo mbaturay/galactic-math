@@ -11,7 +11,7 @@
 		A10000002 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000002 /* SceneDelegate.swift */; };
 		A10000003 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000003 /* GameViewController.swift */; };
 		A10000004 /* TitleScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000004 /* TitleScene.swift */; };
-		A10000005 /* AgeSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000005 /* AgeSelectScene.swift */; };
+		A10000005 /* ProfileSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000005 /* ProfileSelectScene.swift */; };
 		A10000006 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000006 /* GameScene.swift */; };
 		A10000007 /* LevelClearScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000007 /* LevelClearScene.swift */; };
 		A10000008 /* GameOverScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000008 /* GameOverScene.swift */; };
@@ -45,7 +45,7 @@
 		B10000002 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		B10000003 /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
 		B10000004 /* TitleScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleScene.swift; sourceTree = "<group>"; };
-		B10000005 /* AgeSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeSelectScene.swift; sourceTree = "<group>"; };
+		B10000005 /* ProfileSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectScene.swift; sourceTree = "<group>"; };
 		B10000006 /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
 		B10000007 /* LevelClearScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelClearScene.swift; sourceTree = "<group>"; };
 		B10000008 /* GameOverScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameOverScene.swift; sourceTree = "<group>"; };
@@ -115,7 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000004 /* TitleScene.swift */,
-				B10000005 /* AgeSelectScene.swift */,
+				B10000005 /* ProfileSelectScene.swift */,
 				B10000006 /* GameScene.swift */,
 				B10000007 /* LevelClearScene.swift */,
 				B10000008 /* GameOverScene.swift */,
@@ -254,7 +254,7 @@
 				A10000002 /* SceneDelegate.swift in Sources */,
 				A10000003 /* GameViewController.swift in Sources */,
 				A10000004 /* TitleScene.swift in Sources */,
-				A10000005 /* AgeSelectScene.swift in Sources */,
+				A10000005 /* ProfileSelectScene.swift in Sources */,
 				A10000006 /* GameScene.swift in Sources */,
 				A10000007 /* LevelClearScene.swift in Sources */,
 				A10000008 /* GameOverScene.swift in Sources */,

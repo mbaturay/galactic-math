@@ -71,8 +71,8 @@ final class TitleScene: SKScene {
         let gm = GameManager.shared
         var yPos = size.height * 0.22
         for group in AgeGroup.allCases {
-            if let profile = gm.profiles.first(where: { $0.ageGroup == group }), profile.highScore > 0 {
-                let scoreLabel = SKLabelNode(text: "\(group.shortName): \(profile.highScore)")
+            if let best = gm.slots.values.filter({ $0.ageGroup == group }).max(by: { $0.highScore < $1.highScore }), best.highScore > 0 {
+                let scoreLabel = SKLabelNode(text: "\(group.shortName): \(best.highScore)")
                 scoreLabel.fontName = "AvenirNext-Medium"
                 scoreLabel.fontSize = 14
                 scoreLabel.fontColor = group.primaryColor.withAlphaComponent(0.7)
@@ -172,14 +172,14 @@ final class TitleScene: SKScene {
         }
 
         AudioManager.shared.playMenuTap()
-        transitionToAgeSelect()
+        transitionToProfileSelect()
     }
 
-    private func transitionToAgeSelect() {
+    private func transitionToProfileSelect() {
         let transition = SKTransition.push(with: .left, duration: 0.5)
-        let ageScene = AgeSelectScene(size: size)
-        ageScene.scaleMode = .resizeFill
-        view?.presentScene(ageScene, transition: transition)
+        let profileScene = ProfileSelectScene(size: size)
+        profileScene.scaleMode = .resizeFill
+        view?.presentScene(profileScene, transition: transition)
     }
 
     private func transitionToParentGate() {
@@ -363,7 +363,7 @@ final class ParentDashboardScene: SKScene {
         let gm = GameManager.shared
         var yPos = size.height - 100
 
-        if gm.profiles.isEmpty {
+        if gm.slots.isEmpty {
             let noData = SKLabelNode(text: "No player data yet. Start playing!")
             noData.fontName = "AvenirNext-Medium"
             noData.fontSize = 18
@@ -372,8 +372,8 @@ final class ParentDashboardScene: SKScene {
             noData.zPosition = 10
             addChild(noData)
         } else {
-            for (index, profile) in gm.profiles.enumerated() {
-                if index >= 4 { break }
+            for i in 0..<GameManager.maxSlots {
+                guard let profile = gm.slots[i] else { continue }
                 let report = ProgressManager.shared.generateReport(for: profile)
                 drawProfileReport(report, yStart: yPos)
                 yPos -= 160

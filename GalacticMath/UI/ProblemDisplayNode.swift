@@ -3,63 +3,132 @@ import SpriteKit
 final class ProblemDisplayNode: SKNode {
     private var background: SKShapeNode!
     private var questionLabel: SKLabelNode!
+    private var subtitleLabel: SKLabelNode!
     private var ageGroup: AgeGroup = .cadet
-    private var decorLeft: SKLabelNode?
-    private var decorRight: SKLabelNode?
+    private var panelWidth: CGFloat = 0
+    private var currentPanelHeight: CGFloat = 80
 
+    /// Panel is top-anchored: local y=0 is the top edge, panel expands downward.
     func setup(ageGroup: AgeGroup, width: CGFloat) {
         self.ageGroup = ageGroup
+        self.panelWidth = min(width * 0.88, 500)
         removeAllChildren()
 
-        let panelHeight: CGFloat = ageGroup == .cadet ? 60 : 50
-        let panelWidth = min(width * 0.88, 500)
-
-        let rect = CGRect(x: -panelWidth / 2, y: -panelHeight / 2, width: panelWidth, height: panelHeight)
-        background = SKShapeNode(rect: rect, cornerRadius: 12)
-
-        switch ageGroup {
-        case .cadet:
-            background.fillColor = SKColor(red: 0.15, green: 0.05, blue: 0.3, alpha: 0.85)
-            background.strokeColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 0.8)
-        case .pilot:
-            background.fillColor = SKColor(red: 0.05, green: 0.1, blue: 0.25, alpha: 0.85)
-            background.strokeColor = SKColor(red: 0.0, green: 0.8, blue: 1.0, alpha: 0.8)
-        case .ace:
-            background.fillColor = SKColor(red: 0.12, green: 0.02, blue: 0.2, alpha: 0.85)
-            background.strokeColor = SKColor(red: 0.7, green: 0.3, blue: 1.0, alpha: 0.8)
-        }
-
-        background.lineWidth = 2.0
-        background.glowWidth = 2.0
-        addChild(background)
+        buildPanel(height: 80)
 
         questionLabel = SKLabelNode(text: "")
         questionLabel.fontName = "AvenirNext-Heavy"
-        questionLabel.fontSize = ageGroup == .cadet ? 30 : 24
+        questionLabel.fontSize = ageGroup == .cadet ? 26 : 22
         questionLabel.fontColor = .white
         questionLabel.verticalAlignmentMode = .center
         questionLabel.horizontalAlignmentMode = .center
-        questionLabel.position = .zero
+        questionLabel.position = CGPoint(x: 0, y: -28)
         questionLabel.zPosition = 1
         background.addChild(questionLabel)
 
-        if ageGroup == .cadet {
-            decorLeft = SKLabelNode(text: "\u{1F680}")
-            decorLeft!.fontSize = 22
-            decorLeft!.position = CGPoint(x: -panelWidth / 2 + 25, y: -4)
-            decorLeft!.zPosition = 1
-            background.addChild(decorLeft!)
-
-            decorRight = SKLabelNode(text: "\u{1F31F}")
-            decorRight!.fontSize = 22
-            decorRight!.position = CGPoint(x: panelWidth / 2 - 25, y: -4)
-            decorRight!.zPosition = 1
-            background.addChild(decorRight!)
-        }
+        subtitleLabel = SKLabelNode(text: "")
+        subtitleLabel.fontName = "AvenirNext-Medium"
+        subtitleLabel.fontSize = 12
+        subtitleLabel.fontColor = SKColor(white: 0.65, alpha: 0.9)
+        subtitleLabel.verticalAlignmentMode = .center
+        subtitleLabel.horizontalAlignmentMode = .center
+        subtitleLabel.position = CGPoint(x: 0, y: -58)
+        subtitleLabel.zPosition = 1
+        background.addChild(subtitleLabel)
     }
 
-    func showProblem(_ question: String) {
-        questionLabel.text = question
+    private func buildPanel(height: CGFloat) {
+        currentPanelHeight = height
+        // Top at y=0, bottom at y=-height
+        let rect = CGRect(x: -panelWidth / 2, y: -height, width: panelWidth, height: height)
+        background = SKShapeNode(rect: rect, cornerRadius: 12)
+        background.fillColor = SKColor(red: 0.15, green: 0.05, blue: 0.3, alpha: 0.85)
+        background.strokeColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 0.8)
+        background.lineWidth = 2.0
+        background.glowWidth = 2.0
+        addChild(background)
+    }
+
+    private func rebuildPanel(height: CGFloat) {
+        guard height != currentPanelHeight else { return }
+
+        questionLabel.removeFromParent()
+        subtitleLabel.removeFromParent()
+        background.removeFromParent()
+
+        buildPanel(height: height)
+        background.addChild(questionLabel)
+        background.addChild(subtitleLabel)
+    }
+
+    func showProblem(_ question: String, topic: String = "") {
+        // Clear previous counting emoji nodes
+        background.children.filter { $0.name == "countEmoji" }.forEach { $0.removeFromParent() }
+
+        if question.hasPrefix("Count:") {
+            let emojiStr = question
+                .replacingOccurrences(of: "Count: ", with: "")
+                .replacingOccurrences(of: "Count:", with: "")
+            let emojis = Array(emojiStr)
+            let count = emojis.count
+            let needsTwoRows = count > 5
+
+            // Resize panel — expands downward from top
+            rebuildPanel(height: needsTwoRows ? 112 : 80)
+
+            // "Count:" label — small, subtle, near top
+            questionLabel.text = "Count:"
+            questionLabel.fontName = "AvenirNext-Medium"
+            questionLabel.fontSize = 16
+            questionLabel.fontColor = SKColor(white: 0.7, alpha: 0.9)
+            questionLabel.position = CGPoint(x: 0, y: -18)
+
+            subtitleLabel.text = ""
+
+            // Lay out individual emoji nodes — large and spaced
+            let emojiSize: CGFloat = 36
+            let hSpacing: CGFloat = emojiSize + 10
+            let maxPerRow = 5
+
+            for (i, emoji) in emojis.enumerated() {
+                let row = i / maxPerRow
+                let col = i % maxPerRow
+                let itemsInRow = min(maxPerRow, count - row * maxPerRow)
+                let rowWidth = CGFloat(itemsInRow) * hSpacing - 10
+                let startX = -rowWidth / 2 + emojiSize / 2
+
+                let label = SKLabelNode(text: String(emoji))
+                label.fontSize = emojiSize
+                label.name = "countEmoji"
+                label.verticalAlignmentMode = .center
+                label.horizontalAlignmentMode = .center
+                label.zPosition = 1
+
+                let y: CGFloat
+                if needsTwoRows {
+                    y = row == 0 ? -48 : -84
+                } else {
+                    y = -50
+                }
+
+                label.position = CGPoint(x: startX + CGFloat(col) * hSpacing, y: y)
+                background.addChild(label)
+            }
+        } else {
+            // Regular question
+            rebuildPanel(height: 80)
+
+            questionLabel.text = question
+            questionLabel.fontName = "AvenirNext-Heavy"
+            questionLabel.fontSize = ageGroup == .cadet ? 26 : 22
+            questionLabel.fontColor = .white
+            questionLabel.position = CGPoint(x: 0, y: -28)
+
+            subtitleLabel.text = topic
+            subtitleLabel.fontSize = 12
+            subtitleLabel.fontColor = SKColor(white: 0.65, alpha: 0.9)
+            subtitleLabel.position = CGPoint(x: 0, y: -58)
+        }
 
         let pulse = SKAction.sequence([
             SKAction.scale(to: 1.05, duration: 0.3),

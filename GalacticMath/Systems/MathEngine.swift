@@ -92,16 +92,20 @@ final class MathEngine {
 
     // MARK: - Cadet Problems
 
+    private static let countingAnimals = ["🐱", "🐶", "🐸", "🐼", "🐨", "🦊", "🐰", "🐻", "🐯", "🦁"]
+
     private func generateCountingProblem(level: Int, wrongCount: Int) -> MathProblem {
         let maxCount = level <= 1 ? 5 : 10
         let count = Int.random(in: 1...maxCount)
-        let stars = String(repeating: "\u{2B50}", count: count)
+        let animal = MathEngine.countingAnimals.randomElement()!
+        let emojis = String(repeating: animal, count: count)
         return MathProblem(
-            question: "Count: \(stars)",
+            question: "Count: \(emojis)",
             correctAnswer: count,
             wrongAnswers: generateWrongAnswers(correct: count, count: wrongCount, minValue: 1),
             topic: .counting,
-            difficulty: level
+            difficulty: level,
+            countingEmoji: animal
         )
     }
 

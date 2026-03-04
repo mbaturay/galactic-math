@@ -6,6 +6,7 @@ struct MathProblem {
     let wrongAnswers: [Int]
     let topic: MathTopic
     let difficulty: Int
+    var countingEmoji: String? = nil
 
     var allAnswers: [Int] {
         return ([correctAnswer] + wrongAnswers).shuffled()
