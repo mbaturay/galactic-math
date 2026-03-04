@@ -17,10 +17,12 @@ final class GameOverScene: SKScene {
         let gm = GameManager.shared
 
         // Title
-        let titleText = bossDestroyedPlayer ? "THE BOSS DESTROYED YOU!" : "MISSION OVER!"
+        let titleText = bossDestroyedPlayer
+            ? "YOUR PLANET HAS BEEN DESTROYED BY THE SENTINEL! \u{1F4A5}"
+            : "MISSION FAILED!\nYOUR SHIP WAS DESTROYED! \u{1F680}"
         let title = SKLabelNode(text: titleText)
         title.fontName = "AvenirNext-Heavy"
-        title.fontSize = min(size.width * 0.09, 40)
+        title.fontSize = min(size.width * 0.08, 32)
         title.fontColor = bossDestroyedPlayer
             ? SKColor(red: 1.0, green: 0.2, blue: 0.2, alpha: 1.0)
             : SKColor(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0)
@@ -28,35 +30,16 @@ final class GameOverScene: SKScene {
         title.preferredMaxLayoutWidth = size.width - 40
         title.horizontalAlignmentMode = .center
         title.verticalAlignmentMode = .center
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.78)
+        title.position = CGPoint(x: size.width / 2, y: titleSafeY)
         title.zPosition = 10
         addChild(title)
 
-        // Friendly message
-        let message: String
-        if bossDestroyedPlayer {
-            message = "The Sector Sentinel was too powerful!"
-        } else if selectedGrade.rawValue < 2 {
-            message = "Good try, Space Cadet! Keep practicing!"
-        } else if selectedGrade.rawValue < 4 {
-            message = "Nice effort, Star Pilot! Try again?"
-        } else {
-            message = "Great attempt, Commander! Ready for another mission?"
-        }
-
-        let msgLabel = SKLabelNode(text: message)
-        msgLabel.fontName = "AvenirNext-Medium"
-        msgLabel.fontSize = min(size.width * 0.04, 18)
-        msgLabel.fontColor = SKColor(white: 0.85, alpha: 1.0)
-        msgLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.67)
-        msgLabel.zPosition = 10
-        addChild(msgLabel)
-
         // Player avatar
+        let cY = contentStartY
         let avatar = gm.currentProfile?.avatar ?? "\u{1F680}"
         let avatarLabel = SKLabelNode(text: avatar)
         avatarLabel.fontSize = 50
-        avatarLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.61)
+        avatarLabel.position = CGPoint(x: size.width / 2, y: cY)
         avatarLabel.zPosition = 10
         addChild(avatarLabel)
 
@@ -65,7 +48,7 @@ final class GameOverScene: SKScene {
         scoreLabel.fontName = "AvenirNext-Bold"
         scoreLabel.fontSize = 28
         scoreLabel.fontColor = selectedGrade.primaryColor
-        scoreLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
+        scoreLabel.position = CGPoint(x: size.width / 2, y: cY - 66)
         scoreLabel.zPosition = 10
         addChild(scoreLabel)
 
@@ -74,7 +57,7 @@ final class GameOverScene: SKScene {
         levelLabel.fontName = "AvenirNext-Medium"
         levelLabel.fontSize = 18
         levelLabel.fontColor = .white
-        levelLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.45)
+        levelLabel.position = CGPoint(x: size.width / 2, y: cY - 110)
         levelLabel.zPosition = 10
         addChild(levelLabel)
 

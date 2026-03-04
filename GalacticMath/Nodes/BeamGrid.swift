@@ -15,6 +15,13 @@ final class BeamGrid: SKNode {
 
     var beamPositions: [CGFloat] = []
 
+    /// Per-beam vanishing points spread across the vanishing zone
+    private var vanishingPoints: [CGPoint] = []
+
+    /// Width of the vanishing zone at the top (beams spread across this)
+    private var vanishingZoneWidth: CGFloat = 0
+
+    /// Center of the vanishing zone — used by GameScene for enemyStartY
     var vanishingPoint: CGPoint {
         return CGPoint(x: sceneSize.width / 2, y: sceneSize.height * 0.85)
     }
@@ -24,7 +31,11 @@ final class BeamGrid: SKNode {
         self.grade = grade
         self.beamCount = grade.beamCount
 
+        // 3 beams (K, G1): 12% width — 5 beams (G2+): 18% width
+        vanishingZoneWidth = size.width * (beamCount <= 3 ? 0.12 : 0.18)
+
         calculateBeamPositions()
+        calculateVanishingPoints()
         drawBeams()
         drawGridLines()
     }
@@ -40,6 +51,26 @@ final class BeamGrid: SKNode {
         }
     }
 
+    private func calculateVanishingPoints() {
+        vanishingPoints.removeAll()
+        let midX = sceneSize.width / 2
+        let topY = vanishingPoint.y
+
+        if beamCount == 1 {
+            vanishingPoints.append(CGPoint(x: midX, y: topY))
+            return
+        }
+
+        // Spread vanishing points evenly across the zone
+        let zoneLeft = midX - vanishingZoneWidth / 2
+        let zoneSpacing = vanishingZoneWidth / CGFloat(beamCount - 1)
+
+        for i in 0..<beamCount {
+            let x = zoneLeft + zoneSpacing * CGFloat(i)
+            vanishingPoints.append(CGPoint(x: x, y: topY))
+        }
+    }
+
     // MARK: - Vertical Beams
 
     private func drawBeams() {
@@ -51,9 +82,11 @@ final class BeamGrid: SKNode {
         let colors = grade.beamColors
 
         for i in 0..<beamCount {
+            let vp = vanishingPoints[i]
+
             let path = CGMutablePath()
             path.move(to: CGPoint(x: beamPositions[i], y: 0))
-            path.addLine(to: vanishingPoint)
+            path.addLine(to: vp)
 
             // Base layer: light grey, always visible
             let base = SKShapeNode(path: path)
@@ -137,11 +170,12 @@ final class BeamGrid: SKNode {
     func update(deltaTime: TimeInterval) {
         let scrollSpeed: CGFloat = 0.28
 
-        guard !gridPhases.isEmpty else { return }
+        guard !gridPhases.isEmpty, !vanishingPoints.isEmpty else { return }
 
         let leftBase = beamPositions.first ?? 0
         let rightBase = beamPositions.last ?? sceneSize.width
-        let vpX = vanishingPoint.x
+        let leftVP = vanishingPoints.first!
+        let rightVP = vanishingPoints.last!
         let vpY = vanishingPoint.y
 
         for i in 0..<gridPhases.count {
@@ -154,8 +188,10 @@ final class BeamGrid: SKNode {
             let y = vpY * (1.0 - phase)
             let t = y / vpY
 
-            let leftX = leftBase + (vpX - leftBase) * t
-            let rightX = rightBase + (vpX - rightBase) * t
+            // Left edge interpolates toward left vanishing point
+            let leftX = leftBase + (leftVP.x - leftBase) * t
+            // Right edge interpolates toward right vanishing point
+            let rightX = rightBase + (rightVP.x - rightBase) * t
 
             let path = CGMutablePath()
             path.move(to: CGPoint(x: leftX, y: y))
@@ -177,9 +213,11 @@ final class BeamGrid: SKNode {
     }
 
     func interpolatedPosition(from fromBeam: Int, to toBeam: Int, progress: CGFloat, atY y: CGFloat) -> CGFloat {
+        let fromVP = vanishingPoints[fromBeam]
+        let toVP = vanishingPoints[toBeam]
         let t = y / vanishingPoint.y
-        let fromX = beamPositions[fromBeam] + (vanishingPoint.x - beamPositions[fromBeam]) * t
-        let toX = beamPositions[toBeam] + (vanishingPoint.x - beamPositions[toBeam]) * t
+        let fromX = beamPositions[fromBeam] + (fromVP.x - beamPositions[fromBeam]) * t
+        let toX = beamPositions[toBeam] + (toVP.x - beamPositions[toBeam]) * t
         return fromX + (toX - fromX) * progress
     }
 
@@ -187,17 +225,19 @@ final class BeamGrid: SKNode {
         guard beamIndex >= 0 && beamIndex < beamPositions.count else {
             return sceneSize.width / 2
         }
+        let vp = vanishingPoints[beamIndex]
         let t = min(max(y / vanishingPoint.y, 0), 1)
-        return beamPositions[beamIndex] + (vanishingPoint.x - beamPositions[beamIndex]) * t
+        return beamPositions[beamIndex] + (vp.x - beamPositions[beamIndex]) * t
     }
 
     func beamAngle(at beamIndex: Int, y: CGFloat) -> CGFloat {
         guard beamIndex >= 0 && beamIndex < beamPositions.count else {
             return 0
         }
+        let vp = vanishingPoints[beamIndex]
         let bottomX = beamPositions[beamIndex]
-        let dx = vanishingPoint.x - bottomX
-        let dy = vanishingPoint.y
+        let dx = vp.x - bottomX
+        let dy = vp.y
         return -atan2(dx, dy)
     }
 }

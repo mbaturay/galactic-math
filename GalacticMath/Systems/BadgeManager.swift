@@ -43,6 +43,19 @@ final class BadgeManager {
             newBadges.append(.perfectionist)
         }
 
+        // Game Master: graduate a grade with 100% accuracy across all its topics
+        if levelCompleted == 20 && !profile.hasBadge(.gameMaster) {
+            let topics = Curriculum.topicList(for: grade)
+            let allPerfect = topics.allSatisfy { topic in
+                let stats = profile.accuracyPerTopic[topic.rawValue]
+                return stats != nil && stats!.total > 0 && stats!.accuracy >= 1.0
+            }
+            if allPerfect {
+                profile.badgesEarned[Badge.gameMaster.rawValue] = Date()
+                newBadges.append(.gameMaster)
+            }
+        }
+
         // Speed Demon: 10 incredible shots in session
         if sessionIncredibleShots >= 10 && !profile.hasBadge(.speedDemon) {
             profile.badgesEarned[Badge.speedDemon.rawValue] = Date()

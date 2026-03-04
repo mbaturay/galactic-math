@@ -46,6 +46,7 @@
 		A10000030 /* ProblemDisplayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000030 /* ProblemDisplayNode.swift */; };
 		A10000031 /* StarRatingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000031 /* StarRatingNode.swift */; };
 		A10000032 /* BackgroundAsteroid.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000033 /* BackgroundAsteroid.swift */; };
+		A10000042 /* SafeAreaHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000042 /* SafeAreaHelper.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -89,6 +90,7 @@
 		B10000031 /* StarRatingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRatingNode.swift; sourceTree = "<group>"; };
 		B10000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B10000033 /* BackgroundAsteroid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundAsteroid.swift; sourceTree = "<group>"; };
+		B10000042 /* SafeAreaHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeAreaHelper.swift; sourceTree = "<group>"; };
 		C10000001 /* GalacticMath.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GalacticMath.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -194,6 +196,7 @@
 				B10000029 /* TouchControlsNode.swift */,
 				B10000030 /* ProblemDisplayNode.swift */,
 				B10000031 /* StarRatingNode.swift */,
+				B10000042 /* SafeAreaHelper.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -313,6 +316,7 @@
 				A10000030 /* ProblemDisplayNode.swift in Sources */,
 				A10000031 /* StarRatingNode.swift in Sources */,
 				A10000032 /* BackgroundAsteroid.swift in Sources */,
+				A10000042 /* SafeAreaHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

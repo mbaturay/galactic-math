@@ -22,11 +22,13 @@ final class LevelClearScene: SKScene {
         let gm = GameManager.shared
 
         // Title
+        let topY = titleSafeY
+
         let title = SKLabelNode(text: "LEVEL COMPLETE!")
         title.fontName = "AvenirNext-Heavy"
         title.fontSize = min(size.width * 0.09, 40)
         title.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.82)
+        title.position = CGPoint(x: size.width / 2, y: topY)
         title.zPosition = 10
         addChild(title)
 
@@ -37,15 +39,16 @@ final class LevelClearScene: SKScene {
         title.run(titlePop)
 
         // Star rating
+        let cY = contentStartY
         let starRating = StarRatingNode()
         starRating.setup(rating: gm.starRating, size: 40)
-        starRating.position = CGPoint(x: size.width / 2, y: size.height * 0.70)
+        starRating.position = CGPoint(x: size.width / 2, y: cY)
         starRating.zPosition = 10
         addChild(starRating)
 
         // Stats
         let accuracyPct = Int(gm.accuracy * 100)
-        let statsY = size.height * 0.58
+        let statsY = cY - 72
         let lineSpacing: CGFloat = 30
 
         let stats = [

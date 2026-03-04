@@ -10,31 +10,35 @@ final class GradeSelectScene: SKScene {
         starField.setup(size: size, grade: .grade3)
         addChild(starField)
 
+        // Nav bar buttons (in the notch zone, flanking Dynamic Island)
+        addBackButton(atY: navBarY)
+        addBadgeRoomButton(atY: navBarY)
+
+        // Title (below safe area)
+        let titleY = titleSafeY
+
         let title = SKLabelNode(text: "Choose Your Mission")
         title.fontName = "AvenirNext-Heavy"
         title.fontSize = min(size.width * 0.08, 34)
         title.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.92)
+        title.position = CGPoint(x: size.width / 2, y: titleY)
         title.zPosition = 10
         addChild(title)
-
-        addBackButton()
-        addBadgeRoomButton()
 
         if let profile = GameManager.shared.currentProfile {
             let nameLabel = SKLabelNode(text: "\(profile.avatar) \(profile.name)")
             nameLabel.fontName = "AvenirNext-Bold"
             nameLabel.fontSize = 18
             nameLabel.fontColor = .white
-            nameLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.86)
+            nameLabel.position = CGPoint(x: size.width / 2, y: titleY - 30)
             nameLabel.zPosition = 10
             addChild(nameLabel)
         }
 
-        layoutGradePlanets()
+        layoutGradePlanets(below: contentStartY)
     }
 
-    private func layoutGradePlanets() {
+    private func layoutGradePlanets(below startY: CGFloat) {
         let profile = GameManager.shared.currentProfile
         let planetRadius: CGFloat = min(size.width * 0.13, 48)
         let cols = 2
@@ -42,7 +46,6 @@ final class GradeSelectScene: SKScene {
         let gapY: CGFloat = planetRadius * 2 + 28
         let gridW = CGFloat(cols) * planetRadius * 2 + gapX
         let originX = (size.width - gridW) / 2 + planetRadius
-        let startY = size.height * 0.74
 
         for (i, grade) in Grade.allCases.enumerated() {
             let col = i % cols
@@ -112,10 +115,10 @@ final class GradeSelectScene: SKScene {
         return container
     }
 
-    private func addBackButton() {
+    private func addBackButton(atY y: CGFloat) {
         let backBtn = SKNode()
-        backBtn.position = CGPoint(x: 45, y: size.height - 35)
-        backBtn.zPosition = 10
+        backBtn.position = CGPoint(x: 51, y: y)
+        backBtn.zPosition = 100
         backBtn.name = "backButton"
 
         let backBg = SKShapeNode(rectOf: CGSize(width: 70, height: 28), cornerRadius: 8)
@@ -133,10 +136,10 @@ final class GradeSelectScene: SKScene {
         addChild(backBtn)
     }
 
-    private func addBadgeRoomButton() {
+    private func addBadgeRoomButton(atY y: CGFloat) {
         let btn = SKNode()
-        btn.position = CGPoint(x: size.width - 50, y: size.height - 35)
-        btn.zPosition = 10
+        btn.position = CGPoint(x: size.width - 56, y: y)
+        btn.zPosition = 100
         btn.name = "badgeRoom"
 
         let bg = SKShapeNode(rectOf: CGSize(width: 80, height: 28), cornerRadius: 8)

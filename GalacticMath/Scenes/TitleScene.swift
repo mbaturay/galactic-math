@@ -18,7 +18,7 @@ final class TitleScene: SKScene {
         titleLabel.fontName = "AvenirNext-Heavy"
         titleLabel.fontSize = min(size.width * 0.11, 52)
         titleLabel.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.72)
+        titleLabel.position = CGPoint(x: size.width / 2, y: titleSafeY)
         titleLabel.zPosition = 10
         addChild(titleLabel)
 
@@ -40,7 +40,7 @@ final class TitleScene: SKScene {
         subtitleLabel.fontName = "AvenirNext-Medium"
         subtitleLabel.fontSize = min(size.width * 0.05, 22)
         subtitleLabel.fontColor = SKColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0)
-        subtitleLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.66)
+        subtitleLabel.position = CGPoint(x: size.width / 2, y: titleSafeY - 40)
         subtitleLabel.zPosition = 10
         addChild(subtitleLabel)
 
@@ -180,11 +180,13 @@ final class ParentGateScene: SKScene {
         starField.setup(size: size, grade: .grade3)
         addChild(starField)
 
+        let topY = titleSafeY
+
         let title = SKLabelNode(text: "Parent Access")
         title.fontName = "AvenirNext-Bold"
         title.fontSize = 28
         title.fontColor = .white
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.85)
+        title.position = CGPoint(x: size.width / 2, y: topY)
         title.zPosition = 10
         addChild(title)
 
@@ -192,7 +194,7 @@ final class ParentGateScene: SKScene {
         question.fontName = "AvenirNext-Medium"
         question.fontSize = 24
         question.fontColor = SKColor(red: 0.8, green: 0.8, blue: 1.0, alpha: 1.0)
-        question.position = CGPoint(x: size.width / 2, y: size.height * 0.75)
+        question.position = CGPoint(x: size.width / 2, y: contentStartY)
         question.zPosition = 10
         addChild(question)
 
@@ -200,7 +202,7 @@ final class ParentGateScene: SKScene {
         answerLabel.fontName = "AvenirNext-Bold"
         answerLabel.fontSize = 36
         answerLabel.fontColor = .white
-        answerLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.66)
+        answerLabel.position = CGPoint(x: size.width / 2, y: contentStartY - 60)
         answerLabel.zPosition = 10
         addChild(answerLabel)
 
@@ -208,7 +210,7 @@ final class ParentGateScene: SKScene {
         let buttonSize: CGFloat = 50
         let spacing: CGFloat = min(size.width * 0.18, 65)
         let startX = size.width / 2 - spacing
-        let startY = size.height * 0.55
+        let startY = contentStartY - 120
 
         for i in 1...9 {
             let row = (i - 1) / 3
@@ -227,7 +229,7 @@ final class ParentGateScene: SKScene {
         addChild(zeroBtn)
 
         // Back button
-        let backBtn = createNumButton(text: "Back", position: CGPoint(x: 50, y: size.height - 35), size: 40)
+        let backBtn = createNumButton(text: "Back", position: CGPoint(x: 51, y: navBarY), size: 40)
         backBtn.name = "backButton"
         addChild(backBtn)
 
@@ -324,16 +326,18 @@ final class ParentDashboardScene: SKScene {
         starField.setup(size: size, grade: .grade3)
         addChild(starField)
 
+        let topY = titleSafeY
+
         let title = SKLabelNode(text: "Parent Dashboard")
         title.fontName = "AvenirNext-Bold"
         title.fontSize = 26
         title.fontColor = .white
-        title.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        title.position = CGPoint(x: size.width / 2, y: topY)
         title.zPosition = 10
         addChild(title)
 
         let gm = GameManager.shared
-        var yPos = size.height - 100
+        var yPos = contentStartY
 
         if gm.slots.isEmpty {
             let noData = SKLabelNode(text: "No player data yet. Start playing!")
@@ -354,8 +358,8 @@ final class ParentDashboardScene: SKScene {
 
         // Back button
         let backBtn = SKNode()
-        backBtn.position = CGPoint(x: 50, y: size.height - 35)
-        backBtn.zPosition = 10
+        backBtn.position = CGPoint(x: 51, y: navBarY)
+        backBtn.zPosition = 100
         backBtn.name = "backButton"
 
         let backBg = SKShapeNode(rectOf: CGSize(width: 80, height: 30), cornerRadius: 8)

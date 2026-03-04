@@ -11,15 +11,17 @@ final class TopicSelectScene: SKScene {
         starField.setup(size: size, grade: selectedGrade)
         addChild(starField)
 
+        addBackButton(atY: navBarY)
+
+        let titleY = titleSafeY
+
         let title = SKLabelNode(text: "\(selectedGrade.emoji) \(selectedGrade.displayName)")
         title.fontName = "AvenirNext-Heavy"
         title.fontSize = min(size.width * 0.08, 32)
         title.fontColor = selectedGrade.primaryColor
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.90)
+        title.position = CGPoint(x: size.width / 2, y: titleY)
         title.zPosition = 10
         addChild(title)
-
-        addBackButton()
 
         let profile = GameManager.shared.currentProfile
         let currentLevel = profile?.currentLevel(for: selectedGrade) ?? 1
@@ -27,7 +29,7 @@ final class TopicSelectScene: SKScene {
 
         let topicHeight: CGFloat = 56
         let spacing: CGFloat = 10
-        let startY = size.height * 0.76
+        let startY = contentStartY
         let topicWidth = min(size.width * 0.85, 320.0)
 
         for (i, topic) in topics.enumerated() {
@@ -54,7 +56,7 @@ final class TopicSelectScene: SKScene {
 
         // Launch button
         let launchBtn = SKNode()
-        launchBtn.position = CGPoint(x: size.width / 2, y: size.height * 0.12)
+        launchBtn.position = CGPoint(x: size.width / 2, y: 40)
         launchBtn.zPosition = 10
         launchBtn.name = "launchButton"
 
@@ -149,9 +151,9 @@ final class TopicSelectScene: SKScene {
         return container
     }
 
-    private func addBackButton() {
+    private func addBackButton(atY y: CGFloat) {
         let backBtn = SKNode()
-        backBtn.position = CGPoint(x: 45, y: size.height - 35)
+        backBtn.position = CGPoint(x: 51, y: y)
         backBtn.zPosition = 10
         backBtn.name = "backButton"
 

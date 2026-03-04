@@ -32,6 +32,7 @@ final class ProfileSelectScene: SKScene {
     // Long press
     private var longPressTimer: Timer?
     private var longPressSlot: Int?
+    private var longPressReady = false
     private var touchStartTime: TimeInterval = 0
 
     // MARK: - Lifecycle
@@ -56,15 +57,15 @@ final class ProfileSelectScene: SKScene {
         title.fontName = "AvenirNext-Heavy"
         title.fontSize = min(size.width * 0.08, 34)
         title.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.88)
+        title.position = CGPoint(x: size.width / 2, y: titleSafeY)
         title.zPosition = 10
         title.name = "content"
         addChild(title)
 
         // Back button
         let backBtn = SKNode()
-        backBtn.position = CGPoint(x: 45, y: size.height - 35)
-        backBtn.zPosition = 10
+        backBtn.position = CGPoint(x: 51, y: navBarY)
+        backBtn.zPosition = 100
         backBtn.name = "backButton"
 
         let backBg = SKShapeNode(rectOf: CGSize(width: 70, height: 28), cornerRadius: 8)
@@ -90,7 +91,7 @@ final class ProfileSelectScene: SKScene {
         let gridW = slotW * 2 + gapX
         let gridH = slotH * 2 + gapY
         let originX = (size.width - gridW) / 2
-        let originY = size.height * 0.48 - gridH / 2
+        let originY = contentStartY - gridH
 
         slotNodes.removeAll()
 
@@ -135,6 +136,7 @@ final class ProfileSelectScene: SKScene {
         bg.strokeColor = grade.primaryColor.withAlphaComponent(0.7)
         bg.lineWidth = 2.5
         bg.glowWidth = 2.0
+        bg.name = "slotBg"
         container.addChild(bg)
 
         // Avatar
@@ -244,7 +246,7 @@ final class ProfileSelectScene: SKScene {
         title.fontName = "AvenirNext-Bold"
         title.fontSize = min(size.width * 0.07, 28)
         title.fontColor = .white
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.88)
+        title.position = CGPoint(x: size.width / 2, y: titleSafeY)
         title.zPosition = 10
         title.name = "content"
         addChild(title)
@@ -254,12 +256,12 @@ final class ProfileSelectScene: SKScene {
         nameDisplay.fontName = "AvenirNext-Heavy"
         nameDisplay.fontSize = 32
         nameDisplay.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        nameDisplay.position = CGPoint(x: size.width / 2, y: size.height * 0.78)
+        nameDisplay.position = CGPoint(x: size.width / 2, y: contentStartY)
         nameDisplay.zPosition = 10
         nameDisplay.name = "nameDisplay"
         addChild(nameDisplay)
 
-        buildLetterKeyboard(startY: size.height * 0.68, nextButtonName: "nextFromName")
+        buildLetterKeyboard(startY: contentStartY - 50, nextButtonName: "nextFromName")
 
         // Back button
         addBackButton(action: "backToGrid")
@@ -376,7 +378,7 @@ final class ProfileSelectScene: SKScene {
         title.fontName = "AvenirNext-Bold"
         title.fontSize = min(size.width * 0.07, 28)
         title.fontColor = .white
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.85)
+        title.position = CGPoint(x: size.width / 2, y: titleSafeY)
         title.zPosition = 10
         title.name = "content"
         addChild(title)
@@ -386,7 +388,7 @@ final class ProfileSelectScene: SKScene {
         preview.fontName = "AvenirNext-Heavy"
         preview.fontSize = 24
         preview.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        preview.position = CGPoint(x: size.width / 2, y: size.height * 0.76)
+        preview.position = CGPoint(x: size.width / 2, y: contentStartY)
         preview.zPosition = 10
         preview.name = "content"
         addChild(preview)
@@ -401,7 +403,7 @@ final class ProfileSelectScene: SKScene {
             let x = startX + CGFloat(i) * (btnSize + spacing)
 
             let btn = SKNode()
-            btn.position = CGPoint(x: x, y: size.height * 0.58)
+            btn.position = CGPoint(x: x, y: contentStartY - 70)
             btn.zPosition = 10
             btn.name = "avatar_\(i)"
 
@@ -424,7 +426,7 @@ final class ProfileSelectScene: SKScene {
 
         // Create button — final step, creates profile and goes to grade select
         let createBtn = SKNode()
-        createBtn.position = CGPoint(x: size.width / 2, y: size.height * 0.40)
+        createBtn.position = CGPoint(x: size.width / 2, y: contentStartY - 150)
         createBtn.zPosition = 10
         createBtn.name = "createProfile"
 
@@ -474,7 +476,7 @@ final class ProfileSelectScene: SKScene {
         guard let profile = GameManager.shared.slots[slotIndex] else { return }
 
         // Dim overlay
-        let overlay = SKShapeNode(rectOf: size)
+        let overlay = SKShapeNode(rectOf: CGSize(width: size.width * 2, height: size.height * 2))
         overlay.position = CGPoint(x: size.width / 2, y: size.height / 2)
         overlay.fillColor = SKColor(white: 0, alpha: 0.6)
         overlay.strokeColor = .clear
@@ -483,7 +485,7 @@ final class ProfileSelectScene: SKScene {
         addChild(overlay)
 
         let menuW: CGFloat = min(size.width * 0.7, 240)
-        let menuH: CGFloat = 180
+        let menuH: CGFloat = 210
         let menuBg = SKShapeNode(rectOf: CGSize(width: menuW, height: menuH), cornerRadius: 16)
         menuBg.position = CGPoint(x: size.width / 2, y: size.height / 2)
         menuBg.fillColor = SKColor(red: 0.08, green: 0.05, blue: 0.18, alpha: 0.95)
@@ -493,44 +495,75 @@ final class ProfileSelectScene: SKScene {
         menuBg.name = "overlay"
         addChild(menuBg)
 
-        // Title
-        let titleLabel = SKLabelNode(text: "\(profile.avatar) \(profile.name)")
+        // Avatar (large)
+        let avatarLabel = SKLabelNode(text: profile.avatar)
+        avatarLabel.fontSize = 42
+        avatarLabel.verticalAlignmentMode = .center
+        avatarLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 68)
+        avatarLabel.zPosition = 52
+        avatarLabel.name = "overlay"
+        addChild(avatarLabel)
+
+        // Name
+        let titleLabel = SKLabelNode(text: profile.name)
         titleLabel.fontName = "AvenirNext-Bold"
         titleLabel.fontSize = 18
         titleLabel.fontColor = .white
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 55)
+        titleLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 38)
         titleLabel.zPosition = 52
         titleLabel.name = "overlay"
         addChild(titleLabel)
 
-        // Edit button
-        let editBtn = createMenuButton(
-            text: "Edit Player",
+        // Divider
+        let dividerPath = CGMutablePath()
+        dividerPath.move(to: CGPoint(x: size.width / 2 - menuW / 2 + 20, y: size.height / 2 + 20))
+        dividerPath.addLine(to: CGPoint(x: size.width / 2 + menuW / 2 - 20, y: size.height / 2 + 20))
+        let divider = SKShapeNode(path: dividerPath)
+        divider.strokeColor = SKColor(white: 0.3, alpha: 0.4)
+        divider.lineWidth = 1
+        divider.zPosition = 52
+        divider.name = "overlay"
+        addChild(divider)
+
+        // Rename button
+        let renameBtn = createMenuButton(
+            text: "\u{270F}\u{FE0F} Rename Player",
             color: SKColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 1.0),
-            position: CGPoint(x: size.width / 2, y: size.height / 2 + 10),
+            position: CGPoint(x: size.width / 2, y: size.height / 2 - 2),
             width: menuW - 30,
             nodeName: "editPlayer"
         )
-        editBtn.zPosition = 52
-        addChild(editBtn)
+        renameBtn.zPosition = 52
+        addChild(renameBtn)
 
         // Delete button
         let delBtn = createMenuButton(
-            text: "Delete Player",
+            text: "\u{1F5D1}\u{FE0F} Delete Player",
             color: SKColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0),
-            position: CGPoint(x: size.width / 2, y: size.height / 2 - 40),
+            position: CGPoint(x: size.width / 2, y: size.height / 2 - 46),
             width: menuW - 30,
             nodeName: "deletePlayer"
         )
         delBtn.zPosition = 52
         addChild(delBtn)
 
+        // Divider 2
+        let div2Path = CGMutablePath()
+        div2Path.move(to: CGPoint(x: size.width / 2 - menuW / 2 + 20, y: size.height / 2 - 70))
+        div2Path.addLine(to: CGPoint(x: size.width / 2 + menuW / 2 - 20, y: size.height / 2 - 70))
+        let divider2 = SKShapeNode(path: div2Path)
+        divider2.strokeColor = SKColor(white: 0.3, alpha: 0.4)
+        divider2.lineWidth = 1
+        divider2.zPosition = 52
+        divider2.name = "overlay"
+        addChild(divider2)
+
         // Cancel
         let cancelLabel = SKLabelNode(text: "Cancel")
         cancelLabel.fontName = "AvenirNext-Medium"
         cancelLabel.fontSize = 14
         cancelLabel.fontColor = SKColor(white: 0.6, alpha: 0.8)
-        cancelLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 75)
+        cancelLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 88)
         cancelLabel.zPosition = 52
         cancelLabel.name = "cancelMenu"
         addChild(cancelLabel)
@@ -565,7 +598,7 @@ final class ProfileSelectScene: SKScene {
 
         guard let profile = GameManager.shared.slots[editingSlotIndex] else { return }
 
-        let overlay = SKShapeNode(rectOf: size)
+        let overlay = SKShapeNode(rectOf: CGSize(width: size.width * 2, height: size.height * 2))
         overlay.position = CGPoint(x: size.width / 2, y: size.height / 2)
         overlay.fillColor = SKColor(white: 0, alpha: 0.7)
         overlay.strokeColor = .clear
@@ -593,7 +626,7 @@ final class ProfileSelectScene: SKScene {
         msg.name = "overlay"
         addChild(msg)
 
-        let sub1 = SKLabelNode(text: "All of \(profile.name)'s progress will be")
+        let sub1 = SKLabelNode(text: "All progress will be lost forever.")
         sub1.fontName = "AvenirNext-Regular"
         sub1.fontSize = 12
         sub1.fontColor = SKColor(white: 0.6, alpha: 0.9)
@@ -602,20 +635,11 @@ final class ProfileSelectScene: SKScene {
         sub1.name = "overlay"
         addChild(sub1)
 
-        let sub2 = SKLabelNode(text: "lost forever. This cannot be undone.")
-        sub2.fontName = "AvenirNext-Regular"
-        sub2.fontSize = 12
-        sub2.fontColor = SKColor(white: 0.6, alpha: 0.9)
-        sub2.position = CGPoint(x: size.width / 2, y: size.height / 2 + 8)
-        sub2.zPosition = 52
-        sub2.name = "overlay"
-        addChild(sub2)
-
         // Confirm delete
         let delBtn = createMenuButton(
             text: "Delete",
             color: SKColor(red: 0.8, green: 0.15, blue: 0.15, alpha: 1.0),
-            position: CGPoint(x: size.width / 2, y: size.height / 2 - 25),
+            position: CGPoint(x: size.width / 2, y: size.height / 2 - 15),
             width: boxW - 40,
             nodeName: "confirmDelete"
         )
@@ -626,7 +650,7 @@ final class ProfileSelectScene: SKScene {
         cancelLabel.fontName = "AvenirNext-Medium"
         cancelLabel.fontSize = 14
         cancelLabel.fontColor = SKColor(white: 0.6, alpha: 0.8)
-        cancelLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 60)
+        cancelLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 55)
         cancelLabel.zPosition = 52
         cancelLabel.name = "cancelMenu"
         addChild(cancelLabel)
@@ -647,11 +671,11 @@ final class ProfileSelectScene: SKScene {
         pendingName = profile.name
         pendingAvatar = profile.avatar
 
-        let title = SKLabelNode(text: "Edit Player")
+        let title = SKLabelNode(text: "Rename Player")
         title.fontName = "AvenirNext-Bold"
         title.fontSize = min(size.width * 0.07, 28)
         title.fontColor = .white
-        title.position = CGPoint(x: size.width / 2, y: size.height * 0.88)
+        title.position = CGPoint(x: size.width / 2, y: titleSafeY)
         title.zPosition = 10
         title.name = "content"
         addChild(title)
@@ -661,13 +685,13 @@ final class ProfileSelectScene: SKScene {
         nameDisplay.fontName = "AvenirNext-Heavy"
         nameDisplay.fontSize = 28
         nameDisplay.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
-        nameDisplay.position = CGPoint(x: size.width / 2, y: size.height * 0.78)
+        nameDisplay.position = CGPoint(x: size.width / 2, y: contentStartY)
         nameDisplay.zPosition = 10
         nameDisplay.name = "nameDisplay"
         addChild(nameDisplay)
 
         // Letter grid + delete
-        let kbStartY = size.height * 0.68
+        let kbStartY = contentStartY - 50
         buildLetterKeyboard(startY: kbStartY, nextButtonName: "saveEdit", nextButtonLabel: "Save \u{2713}")
 
         // Avatar row below keyboard
@@ -725,8 +749,8 @@ final class ProfileSelectScene: SKScene {
 
     private func addBackButton(action: String) {
         let backBtn = SKNode()
-        backBtn.position = CGPoint(x: 45, y: size.height - 35)
-        backBtn.zPosition = 10
+        backBtn.position = CGPoint(x: 51, y: navBarY)
+        backBtn.zPosition = 100
         backBtn.name = action
 
         let backBg = SKShapeNode(rectOf: CGSize(width: 70, height: 28), cornerRadius: 8)
@@ -775,22 +799,45 @@ final class ProfileSelectScene: SKScene {
         return container
     }
 
+    // MARK: - Long Press Visual Feedback
+
+    private func applyLongPressFeedback(slotIndex: Int) {
+        guard let slotNode = slotNodes[slotIndex] else { return }
+        slotNode.run(SKAction.scale(to: 0.94, duration: 0.2), withKey: "longPressFeedback")
+        if let bg = slotNode.childNode(withName: "slotBg") as? SKShapeNode {
+            bg.glowWidth = 5.0
+        }
+    }
+
+    private func removeLongPressFeedback(slotIndex: Int) {
+        guard let slotNode = slotNodes[slotIndex] else { return }
+        slotNode.removeAction(forKey: "longPressFeedback")
+        slotNode.run(SKAction.scale(to: 1.0, duration: 0.15))
+        if let bg = slotNode.childNode(withName: "slotBg") as? SKShapeNode {
+            bg.glowWidth = 2.0
+        }
+    }
+
     // MARK: - Touch Handling
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         touchStartTime = CACurrentMediaTime()
+        longPressReady = false
 
         if mode == .slotGrid {
             let location = touch.location(in: self)
-            // Check for long press on occupied slots
+            // Start long press detection on occupied slots only
             for i in 0..<GameManager.maxSlots {
                 if let slotNode = slotNodes[i], GameManager.shared.slots[i] != nil {
                     let dist = hypot(location.x - slotNode.position.x, location.y - slotNode.position.y)
                     if dist < 90 {
                         longPressSlot = i
-                        longPressTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
-                            self?.handleLongPress()
+                        // Start visual feedback and set ready flag after 0.6s
+                        longPressTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: false) { [weak self] _ in
+                            guard let self = self else { return }
+                            self.longPressReady = true
+                            self.applyLongPressFeedback(slotIndex: i)
                         }
                         return
                     }
@@ -805,13 +852,28 @@ final class ProfileSelectScene: SKScene {
 
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
-        let elapsed = CACurrentMediaTime() - touchStartTime
+
+        // If long press was recognized, show action menu on release
+        if longPressReady, let slot = longPressSlot {
+            longPressReady = false
+            removeLongPressFeedback(slotIndex: slot)
+            longPressSlot = nil
+            AudioManager.shared.playMenuTap()
+            showActionMenu(slotIndex: slot)
+            return
+        }
+
+        // Clean up any pending long press state
+        if let slot = longPressSlot {
+            removeLongPressFeedback(slotIndex: slot)
+        }
+        longPressSlot = nil
 
         AudioManager.shared.playMenuTap()
 
         switch mode {
         case .slotGrid:
-            handleSlotGridTap(location: location, elapsed: elapsed)
+            handleSlotGridTap(location: location)
         case .creatingName:
             handleNameEntryTap(location: location)
         case .creatingAvatar:
@@ -828,19 +890,16 @@ final class ProfileSelectScene: SKScene {
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         longPressTimer?.invalidate()
         longPressTimer = nil
+        if let slot = longPressSlot {
+            removeLongPressFeedback(slotIndex: slot)
+        }
         longPressSlot = nil
-    }
-
-    private func handleLongPress() {
-        longPressTimer = nil
-        guard let slot = longPressSlot else { return }
-        longPressSlot = nil
-        showActionMenu(slotIndex: slot)
+        longPressReady = false
     }
 
     // MARK: - Tap Handlers
 
-    private func handleSlotGridTap(location: CGPoint, elapsed: TimeInterval) {
+    private func handleSlotGridTap(location: CGPoint) {
         // Back button
         if let backBtn = childNode(withName: "backButton") {
             let dist = hypot(location.x - backBtn.position.x, location.y - backBtn.position.y)
@@ -852,9 +911,6 @@ final class ProfileSelectScene: SKScene {
                 return
             }
         }
-
-        // Only handle short taps (long press handled by timer)
-        guard elapsed < 0.8 else { return }
 
         // Find closest slot
         let gm = GameManager.shared

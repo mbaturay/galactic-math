@@ -202,7 +202,6 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func setupHUD() {
         hud = HUDNode()
-        let safeTop = view?.safeAreaInsets.top ?? 0
         hud.setup(size: size, grade: selectedGrade, safeAreaTop: safeTop)
         hud.onPauseTapped = { [weak self] in
             self?.showPauseOverlay()
