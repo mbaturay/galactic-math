@@ -7,6 +7,7 @@ final class NumberEnemy: SKNode {
 
     private var body: SKShapeNode!
     private var label: SKLabelNode!
+    private var shadowLabel: SKLabelNode!
     private var grade: Grade
     private var dustEmitter: SKEmitterNode?
     private var crackNodes: [SKShapeNode] = []
@@ -80,15 +81,15 @@ final class NumberEnemy: SKNode {
 
     private func buildLabel(answer: Int) {
         // Shadow label for legibility
-        let shadow = SKLabelNode(text: "\(answer)")
-        shadow.fontName = "AvenirNext-Heavy"
-        shadow.fontSize = grade.rawValue < 2 ? 32 : 30
-        shadow.fontColor = SKColor(white: 0, alpha: 0.8)
-        shadow.verticalAlignmentMode = .center
-        shadow.horizontalAlignmentMode = .center
-        shadow.position = CGPoint(x: 1.5, y: -1.5)
-        shadow.zPosition = 0.9
-        addChild(shadow)
+        shadowLabel = SKLabelNode(text: "\(answer)")
+        shadowLabel.fontName = "AvenirNext-Heavy"
+        shadowLabel.fontSize = grade.rawValue < 2 ? 32 : 30
+        shadowLabel.fontColor = SKColor(white: 0, alpha: 0.8)
+        shadowLabel.verticalAlignmentMode = .center
+        shadowLabel.horizontalAlignmentMode = .center
+        shadowLabel.position = CGPoint(x: 1.5, y: -1.5)
+        shadowLabel.zPosition = 0.9
+        addChild(shadowLabel)
 
         label = SKLabelNode(text: "\(answer)")
         label.fontName = "AvenirNext-Heavy"
@@ -200,6 +201,7 @@ final class NumberEnemy: SKNode {
 
         body.isHidden = true
         label.isHidden = true
+        shadowLabel.isHidden = true
         for crack in crackNodes { crack.isHidden = true }
 
         let chunkCount = min(vertices.count, Int.random(in: 3...5))
