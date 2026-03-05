@@ -318,6 +318,13 @@ final class ParentGateScene: SKScene {
 // MARK: - Parent Dashboard
 final class ParentDashboardScene: SKScene {
     private var starField: StarField!
+    private var scrollContainer: SKNode!
+    private var scrollContentHeight: CGFloat = 0
+    private var scrollOffset: CGFloat = 0
+    private var lastTouchY: CGFloat = 0
+    private var scrollVelocity: CGFloat = 0
+    private var visibleAreaBottom: CGFloat = 0
+    private var visibleAreaHeight: CGFloat = 0
 
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.03, green: 0.01, blue: 0.1, alpha: 1.0)
@@ -325,36 +332,6 @@ final class ParentDashboardScene: SKScene {
         starField = StarField()
         starField.setup(size: size, grade: .grade3)
         addChild(starField)
-
-        let topY = titleSafeY
-
-        let title = SKLabelNode(text: "Parent Dashboard")
-        title.fontName = "AvenirNext-Bold"
-        title.fontSize = 26
-        title.fontColor = .white
-        title.position = CGPoint(x: size.width / 2, y: topY)
-        title.zPosition = 10
-        addChild(title)
-
-        let gm = GameManager.shared
-        var yPos = contentStartY
-
-        if gm.slots.isEmpty {
-            let noData = SKLabelNode(text: "No player data yet. Start playing!")
-            noData.fontName = "AvenirNext-Medium"
-            noData.fontSize = 18
-            noData.fontColor = SKColor(white: 0.7, alpha: 1.0)
-            noData.position = CGPoint(x: size.width / 2, y: size.height / 2)
-            noData.zPosition = 10
-            addChild(noData)
-        } else {
-            for i in 0..<GameManager.maxSlots {
-                guard let profile = gm.slots[i] else { continue }
-                let report = ProgressManager.shared.generateReport(for: profile)
-                drawProfileReport(report, yStart: yPos)
-                yPos -= 160
-            }
-        }
 
         // Back button
         let backBtn = SKNode()
@@ -373,84 +350,318 @@ final class ParentDashboardScene: SKScene {
         backLabel.fontColor = .white
         backLabel.verticalAlignmentMode = .center
         backBtn.addChild(backLabel)
-
         addChild(backBtn)
+
+        // Title
+        let title = SKLabelNode(text: "Parent Dashboard")
+        title.fontName = "AvenirNext-Bold"
+        title.fontSize = 26
+        title.fontColor = .white
+        title.position = CGPoint(x: size.width / 2, y: titleSafeY)
+        title.zPosition = 10
+        addChild(title)
+
+        // Scrollable area
+        visibleAreaBottom = 16.0
+        visibleAreaHeight = contentStartY - visibleAreaBottom
+
+        // Clip mask
+        let cropNode = SKCropNode()
+        cropNode.zPosition = 5
+        let mask = SKShapeNode(rect: CGRect(x: 0, y: visibleAreaBottom, width: size.width, height: visibleAreaHeight))
+        mask.fillColor = .white
+        cropNode.maskNode = mask
+        addChild(cropNode)
+
+        scrollContainer = SKNode()
+        scrollContainer.position = .zero
+        cropNode.addChild(scrollContainer)
+
+        buildCards()
     }
 
-    private func drawProfileReport(_ report: ProgressReport, yStart: CGFloat) {
-        let profile = report.profile
-        let nameLabel = SKLabelNode(text: "\(profile.name) - \(profile.currentGrade.displayName)")
-        nameLabel.fontName = "AvenirNext-Bold"
+    // MARK: - Build Cards
+
+    private func buildCards() {
+        scrollContainer.removeAllChildren()
+
+        let gm = GameManager.shared
+        let cardWidth = min(size.width - 32, 400.0)
+        let cardX = size.width / 2
+        let cardSpacing: CGFloat = 16
+        let topicRowHeight: CGFloat = 22
+        let cardPadding: CGFloat = 16
+
+        // Build cards top-down from contentStartY
+        var cursorY = contentStartY
+
+        var hasAnySlot = false
+        for i in 0..<GameManager.maxSlots {
+            if let profile = gm.slots[i] {
+                hasAnySlot = true
+                let grade = profile.currentGrade
+                let gradeTopics = Curriculum.topicList(for: grade)
+                let topicCount = gradeTopics.count
+                let headerHeight: CGFloat = 70
+                let topicSectionHeight = CGFloat(topicCount) * topicRowHeight + 30
+                let cardHeight = headerHeight + topicSectionHeight + cardPadding
+
+                cursorY -= cardHeight / 2
+
+                let card = buildPlayerCard(
+                    profile: profile,
+                    gradeTopics: gradeTopics,
+                    cardWidth: cardWidth,
+                    cardHeight: cardHeight,
+                    topicRowHeight: topicRowHeight
+                )
+                card.position = CGPoint(x: cardX, y: cursorY)
+                scrollContainer.addChild(card)
+
+                cursorY -= cardHeight / 2 + cardSpacing
+            } else {
+                // Empty slot
+                let emptyHeight: CGFloat = 60
+                cursorY -= emptyHeight / 2
+
+                let card = buildEmptySlotCard(width: cardWidth, height: emptyHeight)
+                card.position = CGPoint(x: cardX, y: cursorY)
+                scrollContainer.addChild(card)
+
+                cursorY -= emptyHeight / 2 + cardSpacing
+            }
+        }
+
+        if !hasAnySlot {
+            let noData = SKLabelNode(text: "No player data yet. Start playing!")
+            noData.fontName = "AvenirNext-Medium"
+            noData.fontSize = 18
+            noData.fontColor = SKColor(white: 0.7, alpha: 1.0)
+            noData.position = CGPoint(x: 0, y: size.height / 2)
+            scrollContainer.addChild(noData)
+        }
+
+        // Total content height = distance from contentStartY down to bottom of last card
+        scrollContentHeight = contentStartY - cursorY + cardSpacing
+        scrollOffset = 0
+    }
+
+    // MARK: - Player Card
+
+    private func buildPlayerCard(profile: PlayerProfile, gradeTopics: [MathTopic], cardWidth: CGFloat, cardHeight: CGFloat, topicRowHeight: CGFloat) -> SKNode {
+        let card = SKNode()
+        let grade = profile.currentGrade
+        let accentColor = grade.primaryColor
+
+        // Card background
+        let bg = SKShapeNode(rectOf: CGSize(width: cardWidth, height: cardHeight), cornerRadius: 12)
+        bg.fillColor = SKColor(red: 0.1, green: 0.05, blue: 0.2, alpha: 0.85)
+        bg.strokeColor = accentColor.withAlphaComponent(0.5)
+        bg.lineWidth = 1.5
+        card.addChild(bg)
+
+        let innerLeft = -cardWidth / 2 + 16
+        let innerRight = cardWidth / 2 - 16
+        let barMaxWidth = min(cardWidth * 0.35, 140.0)
+
+        // ── Header Row 1: Avatar + Name + Grade/Level ──
+        let headerY = cardHeight / 2 - 24
+
+        let avatarLabel = SKLabelNode(text: profile.avatar)
+        avatarLabel.fontSize = 22
+        avatarLabel.verticalAlignmentMode = .center
+        avatarLabel.position = CGPoint(x: innerLeft + 12, y: headerY)
+        card.addChild(avatarLabel)
+
+        let nameLabel = SKLabelNode(text: profile.name.uppercased())
+        nameLabel.fontName = "AvenirNext-Heavy"
         nameLabel.fontSize = 17
-        nameLabel.fontColor = profile.currentGrade.primaryColor
+        nameLabel.fontColor = accentColor
         nameLabel.horizontalAlignmentMode = .left
-        nameLabel.position = CGPoint(x: 20, y: yStart)
-        nameLabel.zPosition = 10
-        addChild(nameLabel)
+        nameLabel.verticalAlignmentMode = .center
+        nameLabel.position = CGPoint(x: innerLeft + 32, y: headerY)
+        card.addChild(nameLabel)
 
-        let stats = SKLabelNode(text: "Acc: \(Int(report.overallAccuracy * 100))% | Probs: \(report.totalProblemsAttempted) | Hi: \(profile.highScore(for: profile.currentGrade))")
-        stats.fontName = "AvenirNext-Regular"
-        stats.fontSize = 12
-        stats.fontColor = SKColor(white: 0.8, alpha: 1.0)
-        stats.horizontalAlignmentMode = .left
-        stats.position = CGPoint(x: 20, y: yStart - 22)
-        stats.zPosition = 10
-        addChild(stats)
+        let gradeInfo = "\(grade.displayName)  Lv.\(profile.currentLevel(for: grade))"
+        let gradeLabel = SKLabelNode(text: gradeInfo)
+        gradeLabel.fontName = "AvenirNext-Medium"
+        gradeLabel.fontSize = 12
+        gradeLabel.fontColor = SKColor(white: 0.8, alpha: 0.9)
+        gradeLabel.horizontalAlignmentMode = .right
+        gradeLabel.verticalAlignmentMode = .center
+        gradeLabel.position = CGPoint(x: innerRight, y: headerY)
+        card.addChild(gradeLabel)
 
-        // Topic bars
-        var barY = yStart - 48
-        let barMaxWidth: CGFloat = min(size.width - 140, 240)
+        // ── Header Row 2: Progress bar + Accuracy ──
+        let row2Y = headerY - 24
+        let level = profile.currentLevel(for: grade)
+        let progressFraction = CGFloat(level) / 20.0
+        let progressBarWidth = min(cardWidth * 0.5, 200.0)
 
-        for (key, topicStats) in profile.accuracyPerTopic {
-            guard let topic = MathTopic(rawValue: key), topicStats.total >= 2 else { continue }
-            if barY < 50 { break }
+        // Progress bar background
+        let progBg = SKShapeNode(rect: CGRect(x: 0, y: -4, width: progressBarWidth, height: 8), cornerRadius: 4)
+        progBg.fillColor = SKColor(white: 0.2, alpha: 0.6)
+        progBg.strokeColor = .clear
+        progBg.position = CGPoint(x: innerLeft, y: row2Y)
+        card.addChild(progBg)
 
-            let topicLabel = SKLabelNode(text: topic.displayName)
-            topicLabel.fontName = "AvenirNext-Regular"
-            topicLabel.fontSize = 10
-            topicLabel.fontColor = .white
+        // Progress bar fill
+        let progFillWidth = max(progressBarWidth * progressFraction, 1)
+        let progColor: SKColor = progressFraction > 0.8 ? .green : progressFraction > 0.6 ? .yellow : SKColor(red: 1.0, green: 0.3, blue: 0.2, alpha: 1.0)
+        let progFill = SKShapeNode(rect: CGRect(x: 0, y: -4, width: progFillWidth, height: 8), cornerRadius: 4)
+        progFill.fillColor = progColor
+        progFill.strokeColor = .clear
+        progFill.position = CGPoint(x: innerLeft, y: row2Y)
+        card.addChild(progFill)
+
+        let report = ProgressManager.shared.generateReport(for: profile)
+        let accText = "Acc: \(Int(report.overallAccuracy * 100))%"
+        let accLabel = SKLabelNode(text: accText)
+        accLabel.fontName = "AvenirNext-Bold"
+        accLabel.fontSize = 12
+        accLabel.fontColor = SKColor(white: 0.9, alpha: 1.0)
+        accLabel.horizontalAlignmentMode = .right
+        accLabel.verticalAlignmentMode = .center
+        accLabel.position = CGPoint(x: innerRight, y: row2Y)
+        card.addChild(accLabel)
+
+        // ── Header Row 3: Problems + High Score ──
+        let row3Y = row2Y - 18
+        let statsText = "Problems: \(report.totalProblemsAttempted)  |  Best: \(profile.highScore(for: grade))"
+        let statsLabel = SKLabelNode(text: statsText)
+        statsLabel.fontName = "AvenirNext-Regular"
+        statsLabel.fontSize = 11
+        statsLabel.fontColor = SKColor(white: 0.65, alpha: 0.9)
+        statsLabel.horizontalAlignmentMode = .left
+        statsLabel.verticalAlignmentMode = .center
+        statsLabel.position = CGPoint(x: innerLeft, y: row3Y)
+        card.addChild(statsLabel)
+
+        // ── Divider ──
+        let dividerY = row3Y - 12
+        let divider = SKShapeNode(rectOf: CGSize(width: cardWidth - 32, height: 0.5))
+        divider.fillColor = SKColor(white: 0.4, alpha: 0.3)
+        divider.strokeColor = .clear
+        divider.position = CGPoint(x: 0, y: dividerY)
+        card.addChild(divider)
+
+        // ── Topic Breakdown ──
+        let topicHeaderY = dividerY - 16
+        let topicHeader = SKLabelNode(text: "TOPIC BREAKDOWN:")
+        topicHeader.fontName = "AvenirNext-DemiBold"
+        topicHeader.fontSize = 10
+        topicHeader.fontColor = SKColor(white: 0.55, alpha: 0.9)
+        topicHeader.horizontalAlignmentMode = .left
+        topicHeader.verticalAlignmentMode = .center
+        topicHeader.position = CGPoint(x: innerLeft, y: topicHeaderY)
+        card.addChild(topicHeader)
+
+        let barLeft = innerRight - barMaxWidth - 40
+        var topicY = topicHeaderY - topicRowHeight
+
+        for topic in gradeTopics {
+            let key = topic.rawValue
+            let stats = profile.accuracyPerTopic[key]
+
+            // Topic name — truncate if needed
+            var topicName = topic.displayName
+            if topicName.count > 22 {
+                topicName = String(topicName.prefix(20)) + "..."
+            }
+            let topicLabel = SKLabelNode(text: topicName)
+            topicLabel.fontName = "AvenirNext-Medium"
+            topicLabel.fontSize = 11
+            topicLabel.fontColor = SKColor(white: 0.7, alpha: 0.9)
             topicLabel.horizontalAlignmentMode = .left
-            topicLabel.position = CGPoint(x: 25, y: barY)
-            topicLabel.zPosition = 10
-            addChild(topicLabel)
+            topicLabel.verticalAlignmentMode = .center
+            topicLabel.position = CGPoint(x: innerLeft, y: topicY)
+            card.addChild(topicLabel)
 
-            let barWidth = barMaxWidth * CGFloat(topicStats.accuracy)
-            let barColor: SKColor = topicStats.accuracy > 0.9 ? .green :
-                                    topicStats.accuracy > 0.7 ? .yellow : .red
+            if let stats = stats, stats.total > 0 {
+                let acc = stats.accuracy
+                let barColor: SKColor = acc > 0.8 ? .green : acc > 0.6 ? .yellow : SKColor(red: 1.0, green: 0.3, blue: 0.2, alpha: 1.0)
 
-            let bgBar = SKShapeNode(rectOf: CGSize(width: barMaxWidth, height: 8))
-            bgBar.fillColor = SKColor(white: 0.15, alpha: 0.5)
-            bgBar.strokeColor = .clear
-            bgBar.position = CGPoint(x: 120 + barMaxWidth / 2, y: barY + 3)
-            bgBar.zPosition = 10
-            addChild(bgBar)
+                // Bar background
+                let barBg = SKShapeNode(rect: CGRect(x: 0, y: -3.5, width: barMaxWidth, height: 7), cornerRadius: 3.5)
+                barBg.fillColor = SKColor(white: 0.15, alpha: 0.5)
+                barBg.strokeColor = .clear
+                barBg.position = CGPoint(x: barLeft, y: topicY)
+                card.addChild(barBg)
 
-            if barWidth > 0 {
-                let bar = SKShapeNode(rect: CGRect(x: 0, y: -4, width: barWidth, height: 8), cornerRadius: 2)
-                bar.fillColor = barColor
-                bar.strokeColor = .clear
-                bar.position = CGPoint(x: 120, y: barY + 3)
-                bar.zPosition = 11
-                addChild(bar)
+                // Bar fill
+                let fillWidth = max(barMaxWidth * CGFloat(acc), 1)
+                let barFill = SKShapeNode(rect: CGRect(x: 0, y: -3.5, width: fillWidth, height: 7), cornerRadius: 3.5)
+                barFill.fillColor = barColor
+                barFill.strokeColor = .clear
+                barFill.position = CGPoint(x: barLeft, y: topicY)
+                card.addChild(barFill)
+
+                // Percentage
+                let pctLabel = SKLabelNode(text: "\(Int(acc * 100))%")
+                pctLabel.fontName = "AvenirNext-Bold"
+                pctLabel.fontSize = 10
+                pctLabel.fontColor = barColor
+                pctLabel.horizontalAlignmentMode = .right
+                pctLabel.verticalAlignmentMode = .center
+                pctLabel.position = CGPoint(x: innerRight, y: topicY)
+                card.addChild(pctLabel)
+            } else {
+                let notStarted = SKLabelNode(text: "Not started")
+                notStarted.fontName = "AvenirNext-Regular"
+                notStarted.fontSize = 10
+                notStarted.fontColor = SKColor(white: 0.4, alpha: 0.8)
+                notStarted.horizontalAlignmentMode = .right
+                notStarted.verticalAlignmentMode = .center
+                notStarted.position = CGPoint(x: innerRight, y: topicY)
+                card.addChild(notStarted)
             }
 
-            let pctLabel = SKLabelNode(text: "\(Int(topicStats.accuracy * 100))%")
-            pctLabel.fontName = "AvenirNext-Medium"
-            pctLabel.fontSize = 9
-            pctLabel.fontColor = barColor
-            pctLabel.horizontalAlignmentMode = .left
-            pctLabel.position = CGPoint(x: 125 + barMaxWidth, y: barY)
-            pctLabel.zPosition = 10
-            addChild(pctLabel)
-
-            barY -= 18
+            topicY -= topicRowHeight
         }
+
+        return card
     }
+
+    // MARK: - Empty Slot Card
+
+    private func buildEmptySlotCard(width: CGFloat, height: CGFloat) -> SKNode {
+        let card = SKNode()
+
+        let bg = SKShapeNode(rectOf: CGSize(width: width, height: height), cornerRadius: 12)
+        bg.fillColor = SKColor(white: 0.08, alpha: 0.6)
+        bg.strokeColor = SKColor(white: 0.25, alpha: 0.4)
+        bg.lineWidth = 1.0
+        card.addChild(bg)
+
+        let plus = SKLabelNode(text: "+")
+        plus.fontName = "AvenirNext-Light"
+        plus.fontSize = 24
+        plus.fontColor = SKColor(white: 0.35, alpha: 0.8)
+        plus.verticalAlignmentMode = .center
+        plus.position = CGPoint(x: -30, y: 0)
+        card.addChild(plus)
+
+        let label = SKLabelNode(text: "Empty Slot")
+        label.fontName = "AvenirNext-Medium"
+        label.fontSize = 14
+        label.fontColor = SKColor(white: 0.35, alpha: 0.8)
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .left
+        label.position = CGPoint(x: -16, y: 0)
+        card.addChild(label)
+
+        return card
+    }
+
+    // MARK: - Scrolling
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
+        scrollVelocity = 0
+        lastTouchY = location.y
 
+        // Back button
         if let backBtn = childNode(withName: "backButton") {
             let dist = hypot(location.x - backBtn.position.x, location.y - backBtn.position.y)
             if dist < 50 {
@@ -458,11 +669,40 @@ final class ParentDashboardScene: SKScene {
                 let title = TitleScene(size: size)
                 title.scaleMode = .resizeFill
                 view?.presentScene(title, transition: transition)
+                return
             }
         }
     }
 
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        let dy = location.y - lastTouchY
+        scrollVelocity = dy
+        lastTouchY = location.y
+
+        applyScroll(dy)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Momentum will be applied in update
+    }
+
+    private func applyScroll(_ delta: CGFloat) {
+        let maxScroll = max(scrollContentHeight - visibleAreaHeight, 0)
+        scrollOffset = min(max(scrollOffset + delta, 0), maxScroll)
+        scrollContainer.position.y = scrollOffset
+    }
+
     override func update(_ currentTime: TimeInterval) {
         starField?.update(deltaTime: 1.0 / 60.0)
+
+        // Momentum scrolling
+        if abs(scrollVelocity) > 0.5 {
+            applyScroll(scrollVelocity)
+            scrollVelocity *= 0.92
+        } else {
+            scrollVelocity = 0
+        }
     }
 }
