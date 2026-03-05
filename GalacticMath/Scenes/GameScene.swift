@@ -74,6 +74,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
     private var isPaused_: Bool = false
     private var pauseOverlay: SKNode?
     private var bossNode: SectorSentinel?
+    private var chainExplosionActive: Bool = false
 
     private var activeLasers: [LaserBeam] = []
     private var activeTorpedoes: [Torpedo] = []
@@ -351,6 +352,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
     }
 
     private func handleCorrectHit(enemy: NumberEnemy, timeTaken: TimeInterval) {
+        // Immediately freeze all enemies — prevent bottom hits during chain explosion
+        chainExplosionActive = true
+
         audioManager.playCorrect()
         audioManager.playAsteroidShatter()
 
@@ -572,6 +576,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func handleBeamCannonSequence(enemy: NumberEnemy, timeTaken: TimeInterval) {
         guard bossNode != nil else { return }
+
+        // Immediately freeze all enemies — prevent bottom hits during sequence
+        chainExplosionActive = true
 
         waveManager.bossDefeatedThisLevel = true
 
@@ -984,6 +991,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
     }
 
     private func clearAllEnemies() {
+        chainExplosionActive = false
         for enemy in enemies {
             enemy.removeFromParent()
         }
@@ -1027,6 +1035,8 @@ final class GameScene: SKScene, WaveManagerDelegate {
     }
 
     private func updateEnemies(deltaTime dt: TimeInterval) {
+        guard !chainExplosionActive else { return }
+
         for enemy in enemies {
             guard enemy.parent != nil else { continue }
 
