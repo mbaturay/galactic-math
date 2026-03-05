@@ -15,6 +15,7 @@ final class TouchControlsNode: SKNode {
     var onFire: (() -> Void)?
     var onTorpedo: (() -> Void)?
     var onBackTap: (() -> Void)?
+    var shipXProvider: (() -> CGFloat)?
 
     func setup(size: CGSize, grade: Grade) {
         self.sceneSize = size
@@ -106,9 +107,9 @@ final class TouchControlsNode: SKNode {
             return
         }
 
-        // Left/right tap zones — screen halves above button
-        let midX = sceneSize.width / 2
-        if location.x < midX {
+        // Left/right relative to ship position
+        let splitX = shipXProvider?() ?? sceneSize.width / 2
+        if location.x < splitX {
             onMoveLeft?()
         } else {
             onMoveRight?()

@@ -230,6 +230,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         touchControls.onTorpedo = { [weak self] in
             self?.fireTorpedo()
         }
+        touchControls.shipXProvider = { [weak self] in
+            self?.playerShip.position.x ?? 0
+        }
     }
 
     // MARK: - Player Movement
