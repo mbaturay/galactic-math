@@ -203,6 +203,62 @@ final class Explosion: SKNode {
         return explosion
     }
 
+    // MARK: - Beam Cannon Explosion
+
+    static func beamCannonExplosion(at position: CGPoint, colors: [SKColor]) -> Explosion {
+        let explosion = Explosion()
+        explosion.position = position
+
+        // One emitter per beam color for multi-color burst
+        for (i, color) in colors.enumerated() {
+            let delay = Double(i) * 0.08
+            let emitter = SKEmitterNode()
+            emitter.particleBirthRate = 600
+            emitter.numParticlesToEmit = 100
+            emitter.particleLifetime = 1.2
+            emitter.particleLifetimeRange = 0.4
+            emitter.particleSize = CGSize(width: 14, height: 14)
+            emitter.particleScaleSpeed = -0.6
+            emitter.particleSpeed = 250
+            emitter.particleSpeedRange = 100
+            emitter.emissionAngle = 0
+            emitter.emissionAngleRange = .pi * 2
+            emitter.particleColor = color
+            emitter.particleColorRedRange = 0.2
+            emitter.particleColorGreenRange = 0.2
+            emitter.particleAlpha = 1.0
+            emitter.particleAlphaSpeed = -0.8
+            emitter.particleBlendMode = .add
+
+            explosion.run(SKAction.sequence([
+                SKAction.wait(forDuration: delay),
+                SKAction.run { [weak explosion] in explosion?.addChild(emitter) }
+            ]))
+        }
+
+        // Central white flash
+        let flash = SKShapeNode(circleOfRadius: 50)
+        flash.fillColor = .white
+        flash.strokeColor = .clear
+        flash.alpha = 1.0
+        flash.zPosition = 99
+        explosion.addChild(flash)
+        flash.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.scale(to: 4.0, duration: 0.4),
+                SKAction.fadeOut(withDuration: 0.4)
+            ]),
+            SKAction.removeFromParent()
+        ]))
+
+        explosion.run(SKAction.sequence([
+            SKAction.wait(forDuration: 2.0),
+            SKAction.removeFromParent()
+        ]))
+
+        return explosion
+    }
+
     // MARK: - Bottom Impact Flash
 
     static func bottomImpactFlash(across sceneSize: CGSize) -> Explosion {

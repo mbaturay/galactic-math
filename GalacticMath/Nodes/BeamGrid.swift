@@ -230,6 +230,37 @@ final class BeamGrid: SKNode {
         return beamPositions[beamIndex] + (vp.x - beamPositions[beamIndex]) * t
     }
 
+    // MARK: - Beam Cannon
+
+    func chargeAllBeams() {
+        for line in colorBeamLines {
+            line.removeAction(forKey: "beamTransition")
+            line.removeAction(forKey: "beamFlash")
+            line.alpha = 1.0
+            line.glowWidth = 8
+            line.strokeColor = .white
+
+            let pulse = SKAction.sequence([
+                SKAction.run { [weak line] in line?.glowWidth = 12 },
+                SKAction.wait(forDuration: 0.08),
+                SKAction.run { [weak line] in line?.glowWidth = 6 },
+                SKAction.wait(forDuration: 0.08)
+            ])
+            line.run(SKAction.repeatForever(pulse), withKey: "beamCharge")
+        }
+    }
+
+    func resetAllBeams() {
+        let colors = grade.beamColors
+        for (i, line) in colorBeamLines.enumerated() {
+            line.removeAction(forKey: "beamCharge")
+            line.strokeColor = colors[i % colors.count]
+            line.lineWidth = 2.8
+            line.glowWidth = 0
+            line.alpha = i == activeBeamIndex ? 0.88 : 0
+        }
+    }
+
     func beamAngle(at beamIndex: Int, y: CGFloat) -> CGFloat {
         guard beamIndex >= 0 && beamIndex < beamPositions.count else {
             return 0

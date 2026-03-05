@@ -320,7 +320,11 @@ final class GameScene: SKScene, WaveManagerDelegate {
                 let isCorrect = waveManager.handleAnswerHit(answer: enemy.answerValue, timeTaken: timeTaken)
 
                 if isCorrect {
-                    handleCorrectHit(enemy: enemy, timeTaken: timeTaken)
+                    if bossNode != nil {
+                        handleBeamCannonSequence(enemy: enemy, timeTaken: timeTaken)
+                    } else {
+                        handleCorrectHit(enemy: enemy, timeTaken: timeTaken)
+                    }
                 } else {
                     handleWrongHit(enemy: enemy)
                 }
@@ -338,7 +342,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
                 let timeTaken = CACurrentMediaTime() - problemStartTime
                 let isCorrect = waveManager.handleAnswerHit(answer: enemy.answerValue, timeTaken: timeTaken)
                 if isCorrect {
-                    handleBossDestroyed()
+                    handleBeamCannonSequence(enemy: enemy, timeTaken: timeTaken)
                 }
                 break
             }
@@ -547,48 +551,268 @@ final class GameScene: SKScene, WaveManagerDelegate {
         if gameManager.isGameOver() {
             gameOver()
         }
+
+        // Boss active: wrong answer respawns enemies for same problem
+        if bossNode != nil && !gameManager.isGameOver() {
+            if let problem = waveManager.currentProblem {
+                clearAllEnemies()
+                run(SKAction.sequence([
+                    SKAction.wait(forDuration: 0.5),
+                    SKAction.run { [weak self] in
+                        self?.spawnEnemies(for: problem)
+                    }
+                ]))
+            }
+        }
     }
 
     // MARK: - Boss
 
-    private func handleBossDestroyed() {
-        guard let boss = bossNode else { return }
-        bossIsDescending = false
+    // MARK: - Beam Cannon Sequence
+
+    private func handleBeamCannonSequence(enemy: NumberEnemy, timeTaken: TimeInterval) {
+        guard bossNode != nil else { return }
+
         waveManager.bossDefeatedThisLevel = true
+
+        // ── Step 1 (t=0.0s): Correct asteroid explodes, others vanish ──
+        audioManager.playCorrect()
+        audioManager.playAsteroidShatter()
+
+        let beamColors = selectedGrade.beamColors
+        let correctColor = beamColors[enemy.beamIndex % beamColors.count]
+        let correctPos = enemy.position
+        enemy.shatterIntoChunks { }
+
+        let exp = Explosion.chainExplosion(at: correctPos, color: correctColor, sizeFactor: 1.2) { }
+        addChild(exp)
+
+        // "CORRECT! FIRING BEAM CANNON!" floating text
+        let cannonMsg = SKLabelNode(text: "CORRECT! FIRING BEAM CANNON!")
+        cannonMsg.fontName = "AvenirNext-Heavy"
+        cannonMsg.fontSize = 20
+        cannonMsg.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
+        cannonMsg.position = CGPoint(x: size.width / 2, y: size.height * 0.50)
+        cannonMsg.zPosition = 160
+        addChild(cannonMsg)
+        cannonMsg.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.moveBy(x: 0, y: 30, duration: 1.2),
+                SKAction.fadeOut(withDuration: 1.2)
+            ]),
+            SKAction.removeFromParent()
+        ]))
+
+        // Instantly vanish remaining enemies
+        for other in enemies where other !== enemy && other.parent != nil {
+            other.removeFromParent()
+        }
+        clearAllEnemies()
+
+        // Score
+        gameManager.correctAnswer(timeTaken: timeTaken, points: 500)
+        hud.updateScore(gameManager.score)
+
+        // ── Step 2 (t=0.3s): Beam charge-up ──
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.3),
+            SKAction.run { [weak self] in
+                self?.beamGrid.chargeAllBeams()
+                self?.hud.flashScreenEdge(color: .white)
+            }
+        ]))
+
+        // ── Step 3 (t=0.6s): Fire beam projectiles ──
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.6),
+            SKAction.run { [weak self] in
+                self?.fireBeamCannonProjectiles()
+            }
+        ]))
+
+        // ── Step 4 (t=1.0s): Projectiles hit boss → massive explosion ──
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 1.0),
+            SKAction.run { [weak self] in
+                self?.detonateBoss()
+            }
+        ]))
+
+        // ── Step 5 (t=1.5s): Victory message ──
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 1.5),
+            SKAction.run { [weak self] in
+                self?.showBossVictory()
+            }
+        ]))
+    }
+
+    private func fireBeamCannonProjectiles() {
+        guard let boss = bossNode else { return }
+        let beamColors = selectedGrade.beamColors
+        let beamCount = selectedGrade.beamCount
+        let bossY = boss.position.y
 
         audioManager.playBossDestroy()
 
-        // Massive shatter explosion
-        let explosion = Explosion.bossExplosion(at: boss.position)
-        addChild(explosion)
+        for i in 0..<beamCount {
+            let color = beamColors[i % beamColors.count]
+            let startX = beamGrid.positionForBeam(i)
+            let startY = enemyTargetY
+            let endX = beamGrid.beamXAtY(i, y: bossY)
+            let endY = bossY
 
-        boss.destroy { }
+            // Energy projectile: elongated oval
+            let projectile = SKNode()
+            projectile.position = CGPoint(x: startX, y: startY)
+            projectile.zPosition = 50
 
-        // Score via correctAnswer so problemsThisLevel is incremented
-        let timeTaken = CACurrentMediaTime() - problemStartTime
-        gameManager.correctAnswer(timeTaken: timeTaken, points: 500)
-        hud.updateScore(gameManager.score)
-        hud.showMessage("BOSS DEFEATED!", color: .yellow)
+            let projBody = SKShapeNode(ellipseOf: CGSize(width: 20, height: 60))
+            projBody.fillColor = color.withAlphaComponent(0.9)
+            projBody.strokeColor = .white
+            projBody.lineWidth = 2
+            projBody.glowWidth = 8
+            projectile.addChild(projBody)
+
+            // Fire trail emitter
+            let trail = SKEmitterNode()
+            trail.particleBirthRate = 200
+            trail.particleLifetime = 0.5
+            trail.particleLifetimeRange = 0.2
+            trail.particleSize = CGSize(width: 14, height: 14)
+            trail.particleScaleSpeed = -1.5
+            trail.particleColor = color
+            trail.particleColorRedRange = 0.3
+            trail.particleAlphaSpeed = -2.0
+            trail.particleSpeed = 40
+            trail.emissionAngle = -.pi / 2
+            trail.emissionAngleRange = .pi / 4
+            trail.particleBlendMode = .add
+            trail.position = CGPoint(x: 0, y: -30)
+            projectile.addChild(trail)
+
+            addChild(projectile)
+
+            // Animate: travel up beam in 0.4s
+            let target = CGPoint(x: endX, y: endY)
+            let move = SKAction.move(to: target, duration: 0.4)
+            move.timingMode = .easeIn
+            projectile.run(SKAction.sequence([
+                move,
+                SKAction.removeFromParent()
+            ]))
+        }
+    }
+
+    private func detonateBoss() {
+        guard let boss = bossNode else { return }
+        let bossPos = boss.position
+
+        audioManager.playBossDestroy()
 
         // Screen flash white
-        hud.flashScreenEdge(color: .white)
+        let whiteFlash = SKShapeNode(rectOf: CGSize(width: size.width * 2, height: size.height * 2))
+        whiteFlash.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        whiteFlash.fillColor = .white
+        whiteFlash.strokeColor = .clear
+        whiteFlash.zPosition = 300
+        addChild(whiteFlash)
+        whiteFlash.run(SKAction.sequence([
+            SKAction.fadeOut(withDuration: 0.15),
+            SKAction.removeFromParent()
+        ]))
 
-        let confetti = ConfettiNode()
-        confetti.zPosition = 150
-        addChild(confetti)
-        confetti.burst(in: size)
+        // Boss shatters into chunks
+        boss.shatterIntoChunks { }
 
-        bossNode = nil
-        clearAllEnemies()
-        touchControls.switchToNormalMode()
+        // Multi-color particle explosion
+        let explosion = Explosion.beamCannonExplosion(
+            at: bossPos, colors: selectedGrade.beamColors)
+        addChild(explosion)
 
-        // Dramatic slow motion for 0.5s
+        // Shockwave ring
+        let ring = SKShapeNode(circleOfRadius: 10)
+        ring.position = bossPos
+        ring.strokeColor = SKColor(white: 1.0, alpha: 0.8)
+        ring.fillColor = .clear
+        ring.lineWidth = 4
+        ring.glowWidth = 6
+        ring.zPosition = 250
+        addChild(ring)
+        ring.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.scale(to: 20, duration: 0.5),
+                SKAction.fadeOut(withDuration: 0.5)
+            ]),
+            SKAction.removeFromParent()
+        ]))
+
+        // Screen shake (dramatic — 5 cycles)
+        let shake = SKAction.sequence([
+            SKAction.moveBy(x: -12, y: 8, duration: 0.04),
+            SKAction.moveBy(x: 24, y: -16, duration: 0.04),
+            SKAction.moveBy(x: -24, y: 16, duration: 0.04),
+            SKAction.moveBy(x: 12, y: -8, duration: 0.04)
+        ])
+        run(SKAction.repeat(shake, count: 5))
+
+        // Slow motion
         self.speed = 0.3
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.speed = 1.0
         }
 
-        // Boss defeated always completes the level
+        bossNode = nil
+        beamGrid.resetAllBeams()
+    }
+
+    private func showBossVictory() {
+        let victoryLabel = SKLabelNode(text: "SENTINEL DESTROYED! \u{1F389}")
+        victoryLabel.fontName = "AvenirNext-Heavy"
+        victoryLabel.fontSize = 30
+        victoryLabel.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
+        victoryLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.55)
+        victoryLabel.zPosition = 160
+        victoryLabel.setScale(0.5)
+        addChild(victoryLabel)
+
+        let pop = SKAction.sequence([
+            SKAction.scale(to: 1.2, duration: 0.2),
+            SKAction.scale(to: 1.0, duration: 0.1)
+        ])
+        victoryLabel.run(pop)
+        victoryLabel.run(SKAction.sequence([
+            SKAction.wait(forDuration: 2.0),
+            SKAction.fadeOut(withDuration: 0.5),
+            SKAction.removeFromParent()
+        ]))
+
+        // Score bonus text
+        let bonusLabel = SKLabelNode(text: "+500")
+        bonusLabel.fontName = "AvenirNext-Bold"
+        bonusLabel.fontSize = 24
+        bonusLabel.fontColor = .white
+        bonusLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.48)
+        bonusLabel.zPosition = 160
+        addChild(bonusLabel)
+        bonusLabel.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.moveBy(x: 0, y: 30, duration: 1.5),
+                SKAction.fadeOut(withDuration: 1.5)
+            ]),
+            SKAction.removeFromParent()
+        ]))
+
+        // Confetti burst
+        let confetti = ConfettiNode()
+        confetti.zPosition = 150
+        addChild(confetti)
+        confetti.burst(in: size)
+
+        hud.flashScreenEdge(color: .white)
+        hud.showMessage("BOSS DEFEATED!", color: .yellow)
+
+        // Level complete after 2s
         run(SKAction.sequence([
             SKAction.wait(forDuration: 2.0),
             SKAction.run { [weak self] in
@@ -604,7 +828,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         boss.destroy { }
         bossNode = nil
         clearAllEnemies()
-        touchControls.switchToNormalMode()
+        beamGrid.resetAllBeams()
         hud.showMessage("Boss escaped!", color: .orange)
 
         // Boss escaped completes the level
@@ -711,30 +935,25 @@ final class GameScene: SKScene, WaveManagerDelegate {
         ])
         run(SKAction.repeat(shake, count: 3))
 
-        hud.showMessage("BOSS INCOMING!", color: .red)
-
-        // Switch button to TORPEDO
-        touchControls.switchToBossMode()
+        hud.showMessage("\u{26A0}\u{FE0F} DESTROY THE SENTINEL!", color: .red)
+        // DO NOT switch to boss mode — keep normal FIRE
 
         let boss = SectorSentinel()
         boss.setup(grade: selectedGrade, sceneSize: size)
-        boss.zPosition = 5   // Behind enemies (zPosition 10) so numbers are always readable
+        boss.zPosition = 5
         addChild(boss)
         bossNode = boss
 
-        // Boss spawns at top and descends toward player
-        let bossStartPos = CGPoint(x: size.width / 2, y: enemyStartY + 30)
-        boss.appear(at: bossStartPos) { [weak self] in
+        let bossPos = CGPoint(x: size.width / 2, y: size.height * 0.82)
+        boss.appear(at: bossPos) { [weak self] in
             guard let self = self else { return }
+            boss.setScale(1.5)
             boss.showProblem(problem)
             self.problemStartTime = CACurrentMediaTime()
-            self.bossSpawnTime = CACurrentMediaTime()
-            self.bossIsDescending = true
+            // bossIsDescending stays false — boss stays put
             self.hud.problemDisplay.showProblem(problem.question, topic: "BOSS ROUND")
             self.hud.problemDisplay.startPulse()
             self.spawnEnemies(for: problem)
-
-            self.hud.showMessage("FIRE TORPEDO AT CORRECT ANSWER!", color: .orange)
         }
     }
 
@@ -874,7 +1093,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         boss.removeFromParent()
         bossNode = nil
         clearAllEnemies()
-        touchControls.switchToNormalMode()
+        beamGrid.resetAllBeams()
 
         // Full red flash
         hud.flashScreenEdge(color: .red)
