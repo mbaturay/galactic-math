@@ -440,12 +440,6 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         showStarRating(stars, at: enemy.position)
 
-        // Confetti
-        let confetti = ConfettiNode()
-        confetti.zPosition = 150
-        addChild(confetti)
-        confetti.burst(in: size)
-
         // Chain explosion: correct enemy first (sized by zone), then remaining L→R
         let beamColors = selectedGrade.beamColors
         let correctColor = beamColors[enemy.beamIndex % beamColors.count]
