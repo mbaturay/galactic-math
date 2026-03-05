@@ -86,7 +86,7 @@ final class MathEngine {
         }
         let count = Int.random(in: lower...min(upper, max))
         let animal = MathEngine.countingAnimals.randomElement()!
-        let emojis = String(repeating: animal, count: count)
+        let emojis = Array(repeating: animal, count: count).joined(separator: " ")
         return MathProblem(
             question: "Count: \(emojis)",
             correctAnswer: count,

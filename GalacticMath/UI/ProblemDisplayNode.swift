@@ -69,12 +69,17 @@ final class ProblemDisplayNode: SKNode {
             let emojiStr = question
                 .replacingOccurrences(of: "Count: ", with: "")
                 .replacingOccurrences(of: "Count:", with: "")
-            let emojis = Array(emojiStr)
+            // Split on spaces to get individual emoji safely (no broken multi-byte chars)
+            let emojis = emojiStr.split(separator: " ").map(String.init)
             let count = emojis.count
-            let needsTwoRows = count > 5
+            let maxPerRow = 5
+            let rowCount = (count + maxPerRow - 1) / maxPerRow
+
+            // Panel height: 80 for 1 row, 112 for 2, 140 for 3, 168 for 4
+            let panelHeight: CGFloat = rowCount <= 1 ? 80 : CGFloat(52 + rowCount * 32)
 
             // Resize panel — expands downward from top
-            rebuildPanel(height: needsTwoRows ? 112 : 80)
+            rebuildPanel(height: panelHeight)
 
             // "Count:" label — small, subtle, near top
             questionLabel.text = "Count:"
@@ -85,10 +90,13 @@ final class ProblemDisplayNode: SKNode {
 
             subtitleLabel.text = ""
 
-            // Lay out individual emoji nodes — large and spaced
-            let emojiSize: CGFloat = 36
+            // Lay out individual emoji nodes
+            let emojiSize: CGFloat = count > 10 ? 28 : 36
             let hSpacing: CGFloat = emojiSize + 10
-            let maxPerRow = 5
+
+            // First row Y starts at -48 for 1-2 rows, or -40 for 3+ rows
+            let firstRowY: CGFloat = rowCount <= 2 ? -48 : -40
+            let rowSpacing: CGFloat = count > 10 ? 30 : 36
 
             for (i, emoji) in emojis.enumerated() {
                 let row = i / maxPerRow
@@ -97,19 +105,14 @@ final class ProblemDisplayNode: SKNode {
                 let rowWidth = CGFloat(itemsInRow) * hSpacing - 10
                 let startX = -rowWidth / 2 + emojiSize / 2
 
-                let label = SKLabelNode(text: String(emoji))
+                let label = SKLabelNode(text: emoji)
                 label.fontSize = emojiSize
                 label.name = "countEmoji"
                 label.verticalAlignmentMode = .center
                 label.horizontalAlignmentMode = .center
                 label.zPosition = 1
 
-                let y: CGFloat
-                if needsTwoRows {
-                    y = row == 0 ? -48 : -84
-                } else {
-                    y = -50
-                }
+                let y = firstRowY - CGFloat(row) * rowSpacing
 
                 label.position = CGPoint(x: startX + CGFloat(col) * hSpacing, y: y)
                 background.addChild(label)
