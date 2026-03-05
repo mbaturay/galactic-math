@@ -30,12 +30,14 @@ final class GradeSelectScene: SKScene {
             nameLabel.fontName = "AvenirNext-Bold"
             nameLabel.fontSize = 18
             nameLabel.fontColor = .white
-            nameLabel.position = CGPoint(x: size.width / 2, y: titleY - 30)
+            nameLabel.position = CGPoint(x: size.width / 2, y: titleY - 34)
             nameLabel.zPosition = 10
             addChild(nameLabel)
         }
 
-        layoutGradePlanets(below: contentStartY)
+        // Extra breathing room between title/name block and the planet grid
+        let gridStartY = contentStartY - size.height * 0.06
+        layoutGradePlanets(below: gridStartY)
     }
 
     private func layoutGradePlanets(below startY: CGFloat) {

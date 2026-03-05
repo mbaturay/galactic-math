@@ -718,7 +718,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         let boss = SectorSentinel()
         boss.setup(grade: selectedGrade, sceneSize: size)
-        boss.zPosition = 25
+        boss.zPosition = 5   // Behind enemies (zPosition 10) so numbers are always readable
         addChild(boss)
         bossNode = boss
 
@@ -757,7 +757,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
                 y: enemyStartY
             )
             enemy.setScale(0.5)
-            enemy.zPosition = 10
+            enemy.zPosition = 30   // Always above boss (zPosition 5) so numbers are readable
             addChild(enemy)
             enemies.append(enemy)
             waveManager.answersOnScreen.append(enemy)

@@ -15,11 +15,17 @@ final class GameOverScene: SKScene {
         AudioManager.shared.playGameOver()
 
         let gm = GameManager.shared
+        let cx = size.width / 2
 
-        // Title
+        // -- Layout constants --
+        // Top: title block starts well below the notch/Dynamic Island
+        let topPad: CGFloat = titleSafeY
+        let blockSpacing: CGFloat = size.height * 0.07   // consistent gap between every block
+
+        // -- 1. Title (notch-safe) --
         let titleText = bossDestroyedPlayer
-            ? "YOUR PLANET WAS DESTROYED! \u{1F4A5}"
-            : "MISSION FAILED! YOUR SHIP WAS DESTROYED! \u{1F680}"
+            ? "YOUR PLANET\nWAS DESTROYED! \u{1F4A5}"
+            : "MISSION FAILED!\nYOUR SHIP WAS\nDESTROYED! \u{1F680}"
         let title = SKLabelNode(text: titleText)
         title.fontName = "AvenirNext-Heavy"
         title.fontSize = min(size.width * 0.08, 32)
@@ -27,54 +33,68 @@ final class GameOverScene: SKScene {
             ? SKColor(red: 1.0, green: 0.2, blue: 0.2, alpha: 1.0)
             : SKColor(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0)
         title.numberOfLines = 0
-        title.preferredMaxLayoutWidth = size.width - 40
+        title.preferredMaxLayoutWidth = size.width - 48
         title.horizontalAlignmentMode = .center
-        title.verticalAlignmentMode = .center
-        title.position = CGPoint(x: size.width / 2, y: titleSafeY)
+        title.verticalAlignmentMode = .top
+        title.position = CGPoint(x: cx, y: topPad)
         title.zPosition = 10
         addChild(title)
 
-        // Player avatar
-        let cY = contentStartY
+        // Measure title block height so next item clears it
+        let titleBlockHeight = title.calculateAccumulatedFrame().height
+
+        // -- 2. Player avatar (ship emoji) --
+        let avatarY = topPad - titleBlockHeight - blockSpacing
         let avatar = gm.currentProfile?.avatar ?? "\u{1F680}"
         let avatarLabel = SKLabelNode(text: avatar)
-        avatarLabel.fontSize = 50
-        avatarLabel.position = CGPoint(x: size.width / 2, y: cY)
+        avatarLabel.fontSize = 54
+        avatarLabel.verticalAlignmentMode = .center
+        avatarLabel.position = CGPoint(x: cx, y: avatarY)
         avatarLabel.zPosition = 10
         addChild(avatarLabel)
 
-        // Score
+        // -- 3. Score --
+        let scoreY = avatarY - blockSpacing - 10
         let scoreLabel = SKLabelNode(text: "Score: \(gm.score)")
         scoreLabel.fontName = "AvenirNext-Bold"
         scoreLabel.fontSize = 28
         scoreLabel.fontColor = selectedGrade.primaryColor
-        scoreLabel.position = CGPoint(x: size.width / 2, y: cY - 66)
+        scoreLabel.verticalAlignmentMode = .center
+        scoreLabel.position = CGPoint(x: cx, y: scoreY)
         scoreLabel.zPosition = 10
         addChild(scoreLabel)
 
-        // Level reached
+        // -- 4. Level reached --
+        let levelY = scoreY - blockSpacing * 0.65
         let levelLabel = SKLabelNode(text: "Level Reached: \(gm.currentLevel)")
         levelLabel.fontName = "AvenirNext-Medium"
         levelLabel.fontSize = 18
         levelLabel.fontColor = .white
-        levelLabel.position = CGPoint(x: size.width / 2, y: cY - 110)
+        levelLabel.verticalAlignmentMode = .center
+        levelLabel.position = CGPoint(x: cx, y: levelY)
         levelLabel.zPosition = 10
         addChild(levelLabel)
 
-        // Try Again button
+        // -- 5 & 6. Buttons — anchored from bottom with equal spacing --
+        let btnHeight: CGFloat = 50
+        let btnGap: CGFloat = size.height * 0.04
+        let bottomPad: CGFloat = size.height * 0.12
+
+        let menuBtnY  = bottomPad
+        let retryBtnY = bottomPad + btnHeight + btnGap
+
         let retryBtn = createButton(
             text: "TRY AGAIN",
             color: selectedGrade.primaryColor,
-            position: CGPoint(x: size.width / 2, y: size.height * 0.32),
+            position: CGPoint(x: cx, y: retryBtnY),
             name: "tryAgain"
         )
         addChild(retryBtn)
 
-        // Main Menu button
         let menuBtn = createButton(
             text: "MAIN MENU",
             color: SKColor(white: 0.5, alpha: 1.0),
-            position: CGPoint(x: size.width / 2, y: size.height * 0.22),
+            position: CGPoint(x: cx, y: menuBtnY),
             name: "mainMenu"
         )
         addChild(menuBtn)

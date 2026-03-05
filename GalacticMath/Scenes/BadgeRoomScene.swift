@@ -41,6 +41,17 @@ final class BadgeRoomScene: SKScene {
     private func layoutScene(profile: PlayerProfile) {
         addBackButton(atY: navBarY)
 
+        // Avatar + name on the RIGHT side of the nav bar row, next to the notch
+        let avatarName = SKLabelNode(text: "\(profile.avatar) \(profile.name)")
+        avatarName.fontName = "AvenirNext-Bold"
+        avatarName.fontSize = 14
+        avatarName.fontColor = .white
+        avatarName.horizontalAlignmentMode = .right
+        avatarName.verticalAlignmentMode = .center
+        avatarName.position = CGPoint(x: size.width - 14, y: navBarY)
+        avatarName.zPosition = 100
+        addChild(avatarName)
+
         let topY = titleSafeY
 
         // Title
@@ -52,8 +63,8 @@ final class BadgeRoomScene: SKScene {
         title.zPosition = 100
         addChild(title)
 
-        // Stats section (fixed on scene)
-        let statsBottomY = layoutStats(profile: profile, below: contentStartY)
+        // Stats pills directly under title — no separate avatar row saves space
+        let statsBottomY = layoutStats(profile: profile, below: topY - 28)
 
         // Scroll container setup
         let scrollTop = statsBottomY - 14
@@ -88,17 +99,8 @@ final class BadgeRoomScene: SKScene {
     // MARK: - Stats Section
 
     private func layoutStats(profile: PlayerProfile, below topY: CGFloat) -> CGFloat {
-        // Avatar + Name
-        let avatarName = SKLabelNode(text: "\(profile.avatar) \(profile.name)")
-        avatarName.fontName = "AvenirNext-Bold"
-        avatarName.fontSize = 18
-        avatarName.fontColor = .white
-        avatarName.position = CGPoint(x: size.width / 2, y: topY)
-        avatarName.zPosition = 10
-        addChild(avatarName)
-
-        // Stat pills
-        let pillY = topY - 30
+        // Stat pills (avatar is now in the nav bar row)
+        let pillY = topY
         let hours = Int(profile.totalPlayTime) / 3600
         let mins = (Int(profile.totalPlayTime) % 3600) / 60
         let accPct = Int(profile.overallAccuracy * 100)
@@ -609,3 +611,4 @@ final class BadgeRoomScene: SKScene {
         }
     }
 }
+
