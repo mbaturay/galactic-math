@@ -8,8 +8,8 @@ enum ReadingDifficulty: Int, CaseIterable {
     var readTime: TimeInterval {
         switch self {
         case .easy:   return 8.0
-        case .normal: return 5.0
-        case .hard:   return 3.0
+        case .normal: return 4.0
+        case .hard:   return 2.0
         }
     }
 
@@ -18,6 +18,14 @@ enum ReadingDifficulty: Int, CaseIterable {
         case .easy:   return "EASY"
         case .normal: return "NORMAL"
         case .hard:   return "HARD"
+        }
+    }
+
+    var scoreMultiplier: Double {
+        switch self {
+        case .easy:   return 0.5
+        case .normal: return 1.0
+        case .hard:   return 2.0
         }
     }
 

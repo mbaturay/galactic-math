@@ -8,6 +8,7 @@ final class HUDNode: SKNode {
     private var beamIndicators: [SKShapeNode] = []
 
     private var playerNameLabel: SKLabelNode!
+    private var multiplierLabel: SKLabelNode!
     private var pauseButton: SKNode!
     private var grade: Grade = .kindergarten
     private var sceneSize: CGSize = .zero
@@ -103,6 +104,21 @@ final class HUDNode: SKNode {
         levelLabel.verticalAlignmentMode = .center
         levelLabel.position = CGPoint(x: size.width - 15, y: barCenterY - 12)
         addChild(levelLabel)
+
+        // Score multiplier indicator (only shown for non-normal difficulty)
+        let mul = ReadingDifficulty.current.scoreMultiplier
+        let mulText = mul == 2.0 ? "x2" : mul == 0.5 ? "x0.5" : ""
+        multiplierLabel = SKLabelNode(text: mulText)
+        multiplierLabel.fontName = "AvenirNext-Bold"
+        multiplierLabel.fontSize = 11
+        multiplierLabel.fontColor = ReadingDifficulty.current.color
+        multiplierLabel.horizontalAlignmentMode = .right
+        multiplierLabel.verticalAlignmentMode = .center
+        multiplierLabel.position = CGPoint(x: size.width - 15, y: barCenterY - 24)
+        multiplierLabel.zPosition = 101
+        if mul != 1.0 {
+            addChild(multiplierLabel)
+        }
 
         // Streak — kept for API compatibility, not displayed in bar
         streakLabel = SKLabelNode(text: "")

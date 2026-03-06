@@ -374,7 +374,8 @@ final class GameScene: SKScene, WaveManagerDelegate {
         let streakMul: Double = (streak + 1 >= 5) ? 2.0 : (streak + 1 >= 3) ? 1.5 : 1.0
         let diffMul = gameManager.difficultyMultiplier
         let lvlMul = 1.0 + Double(gameManager.currentLevel) * 0.1
-        let rawPoints = Double(basePoints) * streakMul * diffMul * lvlMul
+        let readMul = ReadingDifficulty.current.scoreMultiplier
+        let rawPoints = Double(basePoints) * streakMul * diffMul * lvlMul * readMul
         let finalPoints = Int((rawPoints / 10).rounded() * 10)
 
         gameManager.correctAnswer(timeTaken: timeTaken, points: finalPoints)
@@ -503,7 +504,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         zoneLabel.zPosition = 160
         addChild(zoneLabel)
 
-        let pointsLabel = SKLabelNode(text: "+\(points)")
+        let readMul = ReadingDifficulty.current.scoreMultiplier
+        let pointsText = readMul == 2.0 ? "+\(points)  x2" : "+\(points)"
+        let pointsLabel = SKLabelNode(text: pointsText)
         pointsLabel.fontName = "AvenirNext-Bold"
         pointsLabel.fontSize = isYoung ? 22 : 18
         pointsLabel.fontColor = zone.color
@@ -613,8 +616,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         }
         clearAllEnemies()
 
-        // Score
-        gameManager.correctAnswer(timeTaken: timeTaken, points: 500)
+        // Score (apply reading difficulty multiplier)
+        let bossPoints = Int(500.0 * ReadingDifficulty.current.scoreMultiplier)
+        gameManager.correctAnswer(timeTaken: timeTaken, points: bossPoints)
         hud.updateScore(gameManager.score)
 
         // ── Step 2 (t=0.3s): Beam charge-up ──
