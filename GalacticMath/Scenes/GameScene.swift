@@ -872,43 +872,48 @@ final class GameScene: SKScene, WaveManagerDelegate {
     }
 
     private func showQuestionReveal(for problem: MathProblem) {
-        // Hide the compact panel — it becomes visible only after the snap
+        // Hide the compact panel — it becomes visible only after the morph
         hud.problemDisplay.hidePanel()
 
-        // Compute the HUD panel's scene position & size for the snap target
+        // Compute the HUD panel's scene position & size for the morph target
         let panelScenePos = hud.convert(hud.problemDisplay.position, to: self)
         let panelW = min(size.width * 0.88, 500)
         let panelSize = CGSize(width: panelW, height: 80)
 
-        let reveal = QuestionRevealNode()
-        addChild(reveal)
+        let mother = MotherMeteorNode()
+        addChild(mother)
 
-        let topicName = problem.topic.displayName
-        reveal.present(
-            fullQuestion: problem.question,
-            coreExpression: problem.coreExpression,
-            topicName: topicName,
-            narrativePrompt: problem.topic.narrativePrompt,
+        mother.present(
+            problem: problem,
+            grade: selectedGrade,
+            beamGrid: beamGrid,
+            enemyStartY: enemyStartY,
             sceneSize: size,
             difficulty: ReadingDifficulty.current,
             hudPanelPosition: panelScenePos,
-            hudPanelSize: panelSize
-        ) { [weak self] in
-            guard let self = self else { return }
-            // Reveal the compact panel and populate it with core expression only
-            self.hud.problemDisplay.revealPanel()
-            self.hud.problemDisplay.showProblem(problem.coreExpression)
-            self.hud.problemDisplay.startPulse()
+            hudPanelSize: panelSize,
+            onEnemiesReady: { [weak self] birthEnemies in
+                guard let self = self else { return }
+                // Register the birthed enemies with the scene & wave manager
+                self.enemies = birthEnemies
+                self.waveManager.answersOnScreen = birthEnemies
+            },
+            completion: { [weak self] in
+                guard let self = self else { return }
+                // Reveal the compact panel and populate it with core expression only
+                self.hud.problemDisplay.revealPanel()
+                self.hud.problemDisplay.showProblem(problem.coreExpression)
+                self.hud.problemDisplay.startPulse()
 
-            self.problemStartTime = CACurrentMediaTime()
+                self.problemStartTime = CACurrentMediaTime()
 
-            if let gradeLevel = self.gameManager.currentGradeLevel {
-                self.hud.updateLevel(self.gameManager.currentLevel, topic: gradeLevel.topic.displayName)
+                if let gradeLevel = self.gameManager.currentGradeLevel {
+                    self.hud.updateLevel(self.gameManager.currentLevel, topic: gradeLevel.topic.displayName)
+                }
+
+                self.enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: self.selectedGrade)
             }
-
-            self.spawnEnemies(for: problem)
-            self.enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: self.selectedGrade)
-        }
+        )
     }
 
     func waveManagerCorrectAnswer() {

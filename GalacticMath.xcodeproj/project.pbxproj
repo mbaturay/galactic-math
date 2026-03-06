@@ -47,7 +47,8 @@
 		A10000031 /* StarRatingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000031 /* StarRatingNode.swift */; };
 		A10000032 /* BackgroundAsteroid.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000033 /* BackgroundAsteroid.swift */; };
 		A10000042 /* SafeAreaHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000042 /* SafeAreaHelper.swift */; };
-		A10000043 /* QuestionRevealNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000043 /* QuestionRevealNode.swift */; };
+		A10000044 /* MotherMeteorNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000044 /* MotherMeteorNode.swift */; };
+		A10000045 /* ReadingDifficulty.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000045 /* ReadingDifficulty.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -92,7 +93,8 @@
 		B10000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B10000033 /* BackgroundAsteroid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundAsteroid.swift; sourceTree = "<group>"; };
 		B10000042 /* SafeAreaHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeAreaHelper.swift; sourceTree = "<group>"; };
-		B10000043 /* QuestionRevealNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionRevealNode.swift; sourceTree = "<group>"; };
+		B10000044 /* MotherMeteorNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotherMeteorNode.swift; sourceTree = "<group>"; };
+		B10000045 /* ReadingDifficulty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingDifficulty.swift; sourceTree = "<group>"; };
 		C10000001 /* GalacticMath.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GalacticMath.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -160,6 +162,7 @@
 				B10000016 /* ConfettiNode.swift */,
 				B10000017 /* SectorSentinel.swift */,
 				B10000033 /* BackgroundAsteroid.swift */,
+				B10000044 /* MotherMeteorNode.swift */,
 			);
 			path = Nodes;
 			sourceTree = "<group>";
@@ -199,7 +202,7 @@
 				B10000030 /* ProblemDisplayNode.swift */,
 				B10000031 /* StarRatingNode.swift */,
 				B10000042 /* SafeAreaHelper.swift */,
-				B10000043 /* QuestionRevealNode.swift */,
+				B10000045 /* ReadingDifficulty.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -320,7 +323,8 @@
 				A10000031 /* StarRatingNode.swift in Sources */,
 				A10000032 /* BackgroundAsteroid.swift in Sources */,
 				A10000042 /* SafeAreaHelper.swift in Sources */,
-				A10000043 /* QuestionRevealNode.swift in Sources */,
+				A10000044 /* MotherMeteorNode.swift in Sources */,
+				A10000045 /* ReadingDifficulty.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
