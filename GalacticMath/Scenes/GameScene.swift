@@ -82,6 +82,8 @@ final class GameScene: SKScene, WaveManagerDelegate {
     // Boss movement
     private var bossIsDescending: Bool = false
     private var bossSpawnTime: TimeInterval = 0
+    private var bossWrongCount: Int = 0
+    private var bossSpeedMultiplier: CGFloat = 1.0
 
     // Enemy management
     private var enemies: [NumberEnemy] = []
@@ -556,8 +558,31 @@ final class GameScene: SKScene, WaveManagerDelegate {
             gameOver()
         }
 
-        // Boss active: wrong answer respawns enemies for same problem
+        // Boss active: wrong answer speeds up remaining meteors + respawns
         if bossNode != nil && !gameManager.isGameOver() {
+            bossWrongCount += 1
+
+            // Escalate speed: 1.35x per wrong, capped at 4x
+            bossSpeedMultiplier = min(bossSpeedMultiplier * 1.35, 4.0)
+
+            // Boss-specific escalation messages
+            let bossMsg: String
+            switch bossWrongCount {
+            case 1:  bossMsg = "FASTER! 👹"
+            case 2:  bossMsg = "EVEN FASTER!! 👹"
+            default: bossMsg = "MAXIMUM SPEED!!! 👹"
+            }
+            hud.showMessage(bossMsg, color: .red)
+
+            // Red flash on all remaining meteors
+            for other in enemies where other.parent != nil {
+                let flash = SKAction.sequence([
+                    SKAction.colorize(with: .red, colorBlendFactor: 0.8, duration: 0.08),
+                    SKAction.colorize(withColorBlendFactor: 0.0, duration: 0.15)
+                ])
+                other.children.first?.run(flash)
+            }
+
             if let problem = waveManager.currentProblem {
                 clearAllEnemies()
                 run(SKAction.sequence([
@@ -581,6 +606,18 @@ final class GameScene: SKScene, WaveManagerDelegate {
         chainExplosionActive = true
 
         waveManager.bossDefeatedThisLevel = true
+
+        // Dismiss question panel before the explosion sequence
+        hud.problemDisplay.stopPulse()
+        hud.problemDisplay.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.moveBy(x: 0, y: 60, duration: 0.3),
+                SKAction.fadeOut(withDuration: 0.3)
+            ]),
+            SKAction.run { [weak self] in
+                self?.hud.problemDisplay.hidePanel()
+            }
+        ]))
 
         // ── Step 1 (t=0.0s): Correct asteroid explodes, others vanish ──
         audioManager.playCorrect()
@@ -989,6 +1026,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         bossNode = boss
 
         let bossPos = CGPoint(x: size.width / 2, y: size.height * 0.82)
+        bossWrongCount = 0
+        bossSpeedMultiplier = 1.0
+
         boss.appear(at: bossPos) { [weak self] in
             guard let self = self else { return }
             boss.setScale(1.5)
@@ -1077,7 +1117,8 @@ final class GameScene: SKScene, WaveManagerDelegate {
         for enemy in enemies {
             guard enemy.parent != nil else { continue }
 
-            let movement = enemySpeed * CGFloat(dt)
+            let speedMul = bossNode != nil ? bossSpeedMultiplier : 1.0
+            let movement = enemySpeed * speedMul * CGFloat(dt)
             enemy.position.y -= movement
 
             // Update X position to follow beam perspective
