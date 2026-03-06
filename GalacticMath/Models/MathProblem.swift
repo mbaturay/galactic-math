@@ -30,9 +30,10 @@ struct MathProblem {
             return String(q[q.startIndex..<range.lowerBound])
         }
 
-        // Strip " = ?/denom" (fraction answers: "3/4 + 1/4 = ?/4")
-        if let range = q.range(of: " = ?/") {
-            return String(q[q.startIndex..<range.lowerBound])
+        // Fraction with denominator context: "3/4 + 1/4 = ?/4" — keep the "= ?/4" part
+        // The player needs to see the target denominator to know they're entering a numerator
+        if q.range(of: " = ?/") != nil {
+            return q
         }
 
         // Ratio/proportion: "3:5 = 6:?" or "2/3 = 10/?" — keep the full form

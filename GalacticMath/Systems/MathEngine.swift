@@ -510,36 +510,51 @@ final class MathEngine {
     }
 
     // MARK: - Multiply Fractions (Grade 5)
+    // Constructive: pick answer k, pick d1/d2, derive n1/n2 so (n1*n2)/(d1*d2) = k
 
     private func genMultFractions(difficulty: Int, wrongCount: Int) -> MathProblem {
-        let n1 = Int.random(in: 1...3)
-        let d1 = Int.random(in: 2...5)
-        let n2 = Int.random(in: 1...3)
-        let d2 = Int.random(in: 2...5)
-        let correctNum = n1 * n2
-        let correctDen = d1 * d2
+        let k = Int.random(in: 1...(difficulty <= 2 ? 4 : 6))
+        let d1 = Int.random(in: 2...(difficulty <= 2 ? 3 : 5))
+        let d2 = Int.random(in: 2...(difficulty <= 2 ? 3 : 5))
+        let target = k * d1 * d2  // n1 * n2 must equal this
+
+        // Find factor pairs of target, pick one with reasonable values
+        var pairs: [(Int, Int)] = []
+        for f in 1...target where target % f == 0 {
+            let other = target / f
+            if f <= 12 && other <= 12 { pairs.append((f, other)) }
+        }
+        let (n1, n2) = pairs.randomElement() ?? (target, 1)
+
         return MathProblem(
-            question: "\(n1)/\(d1) x \(n2)/\(d2) = ?/\(correctDen)",
-            correctAnswer: correctNum,
-            wrongAnswers: wrongAnswers(correct: correctNum, count: wrongCount, minValue: 1),
+            question: "\(n1)/\(d1) x \(n2)/\(d2) = ?",
+            correctAnswer: k,
+            wrongAnswers: wrongAnswers(correct: k, count: wrongCount, minValue: 1),
             topic: .multiplyFractions,
             difficulty: difficulty
         )
     }
 
     // MARK: - Divide Fractions (Grade 5)
+    // Constructive: pick answer k, pick b and c, derive a/d so (a/b) ÷ (c/d) = k
 
     private func genDivFractions(difficulty: Int, wrongCount: Int) -> MathProblem {
-        let n1 = Int.random(in: 1...4)
-        let d1 = Int.random(in: 2...5)
-        let n2 = Int.random(in: 1...3)
-        let d2 = Int.random(in: 2...4)
-        let correctNum = n1 * d2
-        let correctDen = d1 * n2
+        let k = Int.random(in: 1...(difficulty <= 2 ? 3 : 5))
+        let b = Int.random(in: 2...(difficulty <= 2 ? 3 : 5))
+        let c = Int.random(in: 1...(difficulty <= 2 ? 3 : 4))
+        let target = k * b * c  // a * d must equal this (since a*d / b*c = k)
+
+        var pairs: [(Int, Int)] = []
+        for f in 1...target where target % f == 0 {
+            let other = target / f
+            if f <= 12 && other <= 12 { pairs.append((f, other)) }
+        }
+        let (a, d) = pairs.randomElement() ?? (target, 1)
+
         return MathProblem(
-            question: "\(n1)/\(d1) \u{00F7} \(n2)/\(d2) = ?/\(correctDen)",
-            correctAnswer: correctNum,
-            wrongAnswers: wrongAnswers(correct: correctNum, count: wrongCount, minValue: 1),
+            question: "\(a)/\(b) \u{00F7} \(c)/\(d) = ?",
+            correctAnswer: k,
+            wrongAnswers: wrongAnswers(correct: k, count: wrongCount, minValue: 1),
             topic: .divideFractions,
             difficulty: difficulty
         )

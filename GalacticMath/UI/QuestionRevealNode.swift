@@ -270,6 +270,9 @@ final class QuestionRevealNode: SKNode {
             // --- Reposition expression label toward center as box shrinks ---
             exprLabel.position.y = exprStartY * (1.0 - t)
 
+            // --- Keep compact label pinned to vertical center of the morphing rect ---
+            cmpLabel.position = CGPoint(x: 0, y: 0)
+
             // --- Dim overlay fades out ---
             dimBg.alpha = max(1.0 - fadeT * 1.5, 0)
         }
@@ -282,6 +285,8 @@ final class QuestionRevealNode: SKNode {
             let scale = 1.0 + 0.06 * bt
             box.xScale = scale
             box.yScale = scale
+            // Keep compact label centered during bounce
+            cmpLabel.position = CGPoint(x: 0, y: 0)
         }
         let bounceDown = SKAction.customAction(withDuration: 0.07) {
             node, elapsed in
@@ -290,6 +295,8 @@ final class QuestionRevealNode: SKNode {
             let scale = 1.06 - 0.06 * bt
             box.xScale = scale
             box.yScale = scale
+            // Keep compact label centered during bounce
+            cmpLabel.position = CGPoint(x: 0, y: 0)
         }
 
         let finish = SKAction.run { [weak self] in
@@ -297,6 +304,10 @@ final class QuestionRevealNode: SKNode {
             self.modalBox.zRotation = 0
             self.modalBox.xScale = 1.0
             self.modalBox.yScale = 1.0
+            // Final enforcement: compact label centered in the settled panel
+            self.compactLabel.position = CGPoint(x: 0, y: 0)
+            self.compactLabel.verticalAlignmentMode = .center
+            self.compactLabel.horizontalAlignmentMode = .center
             self.finishReveal()
         }
 
