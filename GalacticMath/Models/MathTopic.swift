@@ -50,6 +50,53 @@ enum MathTopic: String, CaseIterable, Codable {
     case geometry
     case mixedChallenge
 
+    var narrativePrompt: String {
+        switch self {
+        case .counting1to10, .counting11to20:
+            return "How many are there?"
+        case .comparingNumbers:
+            return "Which number is bigger?"
+        case .additionWithin5, .additionWithin10, .additionWithin20, .additionWithin100:
+            return "What is the sum?"
+        case .subtractionWithin5, .subtractionWithin10, .subtractionWithin20, .subtractionWithin100:
+            return "What is the difference?"
+        case .placeValue:
+            return "What digit is it?"
+        case .skipCounting:
+            return "What comes next?"
+        case .introMultiplication, .multiplicationBasic, .multiplicationMedium, .multiplicationAdvanced, .multiDigitMultiplication:
+            return "What is the product?"
+        case .timeAndMeasurement:
+            return "What time is it?"
+        case .divisionBasic, .longDivision:
+            return "What is the quotient?"
+        case .fractionsIntro, .equivalentFractions, .addSubtractFractions, .multiplyFractions, .divideFractions:
+            return "What is the answer?"
+        case .decimalsIntro, .decimalOperations:
+            return "What is the answer?"
+        case .volumeBasics:
+            return "What is the volume?"
+        case .coordinatePlane:
+            return "What is the distance?"
+        case .ratiosAndRates, .proportionalRelationships:
+            return "What is the missing value?"
+        case .percentages:
+            return "What is the result?"
+        case .negativeNumbers:
+            return "What is the answer?"
+        case .oneStepEquations, .twoStepEquations:
+            return "What is the value of x?"
+        case .complexArea:
+            return "What is the area?"
+        case .probability:
+            return "What is the probability?"
+        case .geometry:
+            return "What is the answer?"
+        case .mixedChallenge:
+            return "Solve it!"
+        }
+    }
+
     var displayName: String {
         switch self {
         case .counting1to10:           return "Counting 1-10"

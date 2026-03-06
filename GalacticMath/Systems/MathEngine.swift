@@ -7,15 +7,47 @@ final class MathEngine {
 
     func generateProblem(grade: Grade, level: GradeLevel) -> MathProblem {
         let wrongCount = grade.beamCount == 3 ? 2 : 4
-        return generateForTopic(level.topic, difficulty: level.difficultyWithinTopic, wrongCount: wrongCount)
+        return validatedProblem(topic: level.topic, difficulty: level.difficultyWithinTopic, wrongCount: wrongCount)
     }
 
     func generateBossProblem(grade: Grade, level: Int) -> MathProblem {
         guard let gradeLevel = Curriculum.level(for: grade, levelNumber: level) else {
-            return generateForTopic(.additionWithin10, difficulty: 4, wrongCount: 4)
+            return validatedProblem(topic: .additionWithin10, difficulty: 4, wrongCount: 4)
         }
         let wrongCount = grade.beamCount == 3 ? 2 : 4
-        return generateForTopic(gradeLevel.topic, difficulty: 4, wrongCount: wrongCount)
+        return validatedProblem(topic: gradeLevel.topic, difficulty: 4, wrongCount: wrongCount)
+    }
+
+    /// Generate a problem and sanity-check it. Regenerate up to 3 times if invalid.
+    private func validatedProblem(topic: MathTopic, difficulty: Int, wrongCount: Int) -> MathProblem {
+        for attempt in 0..<3 {
+            let problem = generateForTopic(topic, difficulty: difficulty, wrongCount: wrongCount)
+            if validateProblem(problem) {
+                return problem
+            }
+            print("[MathEngine] WARNING: Problem failed validation (attempt \(attempt + 1)): "
+                  + "q=\"\(problem.question)\" answer=\(problem.correctAnswer) topic=\(topic)")
+        }
+        // Final fallback — return whatever we get
+        let problem = generateForTopic(topic, difficulty: difficulty, wrongCount: wrongCount)
+        if !validateProblem(problem) {
+            print("[MathEngine] WARNING: Problem still invalid after retries: "
+                  + "q=\"\(problem.question)\" answer=\(problem.correctAnswer)")
+        }
+        return problem
+    }
+
+    /// Check that the problem is self-consistent:
+    /// - correctAnswer is not in wrongAnswers
+    /// - wrongAnswers are all distinct
+    /// - question string is non-empty
+    /// - correctAnswer is a reasonable integer (not absurdly large)
+    private func validateProblem(_ problem: MathProblem) -> Bool {
+        guard !problem.question.isEmpty else { return false }
+        guard !problem.wrongAnswers.contains(problem.correctAnswer) else { return false }
+        guard Set(problem.wrongAnswers).count == problem.wrongAnswers.count else { return false }
+        guard abs(problem.correctAnswer) < 10000 else { return false }
+        return true
     }
 
     private func generateForTopic(_ topic: MathTopic, difficulty: Int, wrongCount: Int) -> MathProblem {
@@ -586,8 +618,10 @@ final class MathEngine {
 
     private func genRatios(difficulty: Int, wrongCount: Int) -> MathProblem {
         let a = Int.random(in: 2...5)
-        let b = Int.random(in: 2...5)
-        let multiplier = Int.random(in: 2...6)
+        var b = Int.random(in: 2...5)
+        while b == a { b = Int.random(in: 2...5) }
+        let maxMult = difficulty <= 2 ? 4 : 6
+        let multiplier = Int.random(in: 2...maxMult)
         let newA = a * multiplier
         let correct = b * multiplier
         return MathProblem(

@@ -53,6 +53,16 @@ final class HUDNode: SKNode {
         pauseButton.addChild(pauseIcon)
         addChild(pauseButton)
 
+        // Reading difficulty indicator dot (next to pause)
+        let diffDot = SKShapeNode(circleOfRadius: 4)
+        diffDot.fillColor = ReadingDifficulty.current.color
+        diffDot.strokeColor = ReadingDifficulty.current.color.withAlphaComponent(0.5)
+        diffDot.glowWidth = 2.0
+        diffDot.position = CGPoint(x: 52, y: barCenterY + 14)
+        diffDot.zPosition = 101
+        diffDot.name = "difficultyDot"
+        addChild(diffDot)
+
         // === MIDDLE: Player name (line 1) + ❤️ lives (line 2) ===
         let midX = size.width / 2
 
@@ -100,10 +110,11 @@ final class HUDNode: SKNode {
         streakLabel.fontSize = 14
         streakLabel.fontColor = SKColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0)
 
-        // === QUESTION PANEL below bar (top-anchored) ===
+        // === QUESTION PANEL below bar (top-anchored, starts hidden) ===
         problemDisplay = ProblemDisplayNode()
         problemDisplay.setup(grade: grade, width: size.width)
         problemDisplay.position = CGPoint(x: size.width / 2, y: barCenterY - barHeight / 2 - 4)
+        problemDisplay.hidePanel()
         addChild(problemDisplay)
 
         // Beam position indicators above touch controls

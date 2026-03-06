@@ -867,17 +867,48 @@ final class GameScene: SKScene, WaveManagerDelegate {
             handleBossEscaped()
         }
 
-        problemStartTime = CACurrentMediaTime()
+        // Show the full-screen question reveal modal FIRST
+        showQuestionReveal(for: problem)
+    }
+
+    private func showQuestionReveal(for problem: MathProblem) {
+        // Hide the compact panel — it becomes visible only after the snap
+        hud.problemDisplay.hidePanel()
+
+        // Compute the HUD panel's scene position & size for the snap target
+        let panelScenePos = hud.convert(hud.problemDisplay.position, to: self)
+        let panelW = min(size.width * 0.88, 500)
+        let panelSize = CGSize(width: panelW, height: 80)
+
+        let reveal = QuestionRevealNode()
+        addChild(reveal)
+
         let topicName = problem.topic.displayName
-        hud.problemDisplay.showProblem(problem.question, topic: topicName)
-        hud.problemDisplay.startPulse()
+        reveal.present(
+            fullQuestion: problem.question,
+            coreExpression: problem.coreExpression,
+            topicName: topicName,
+            narrativePrompt: problem.topic.narrativePrompt,
+            sceneSize: size,
+            difficulty: ReadingDifficulty.current,
+            hudPanelPosition: panelScenePos,
+            hudPanelSize: panelSize
+        ) { [weak self] in
+            guard let self = self else { return }
+            // Reveal the compact panel and populate it with core expression only
+            self.hud.problemDisplay.revealPanel()
+            self.hud.problemDisplay.showProblem(problem.coreExpression)
+            self.hud.problemDisplay.startPulse()
 
-        if let gradeLevel = gameManager.currentGradeLevel {
-            hud.updateLevel(gameManager.currentLevel, topic: gradeLevel.topic.displayName)
+            self.problemStartTime = CACurrentMediaTime()
+
+            if let gradeLevel = self.gameManager.currentGradeLevel {
+                self.hud.updateLevel(self.gameManager.currentLevel, topic: gradeLevel.topic.displayName)
+            }
+
+            self.spawnEnemies(for: problem)
+            self.enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: self.selectedGrade)
         }
-
-        spawnEnemies(for: problem)
-        enemySpeed = AdaptiveDifficulty.shared.currentSpeed(for: selectedGrade)
     }
 
     func waveManagerCorrectAnswer() {
@@ -1211,6 +1242,41 @@ final class GameScene: SKScene, WaveManagerDelegate {
         menuBtn.name = "pauseMenu"
         overlay.addChild(menuBtn)
 
+        // Reading difficulty picker
+        let diffLabel = SKLabelNode(text: "READING SPEED")
+        diffLabel.fontName = "AvenirNext-Medium"
+        diffLabel.fontSize = 13
+        diffLabel.fontColor = SKColor(white: 0.6, alpha: 1.0)
+        diffLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 115)
+        overlay.addChild(diffLabel)
+
+        let btnWidth: CGFloat = 80
+        let spacing: CGFloat = 10
+        let totalW = CGFloat(ReadingDifficulty.allCases.count) * btnWidth + CGFloat(ReadingDifficulty.allCases.count - 1) * spacing
+        let startX = size.width / 2 - totalW / 2 + btnWidth / 2
+
+        for (i, diff) in ReadingDifficulty.allCases.enumerated() {
+            let btn = SKNode()
+            let isSelected = diff == ReadingDifficulty.current
+
+            let bg = SKShapeNode(rectOf: CGSize(width: btnWidth, height: 34), cornerRadius: 10)
+            bg.fillColor = isSelected ? diff.color.withAlphaComponent(0.4) : SKColor(white: 0.15, alpha: 0.6)
+            bg.strokeColor = diff.color.withAlphaComponent(isSelected ? 1.0 : 0.5)
+            bg.lineWidth = isSelected ? 2.5 : 1.5
+            btn.addChild(bg)
+
+            let lbl = SKLabelNode(text: diff.label)
+            lbl.fontName = "AvenirNext-Bold"
+            lbl.fontSize = 13
+            lbl.fontColor = isSelected ? .white : diff.color.withAlphaComponent(0.7)
+            lbl.verticalAlignmentMode = .center
+            btn.addChild(lbl)
+
+            btn.position = CGPoint(x: startX + CGFloat(i) * (btnWidth + spacing), y: size.height / 2 - 145)
+            btn.name = "difficultyBtn_\(diff.rawValue)"
+            overlay.addChild(btn)
+        }
+
         overlay.name = "pauseOverlay"
         addChild(overlay)
         pauseOverlay = overlay
@@ -1264,6 +1330,17 @@ final class GameScene: SKScene, WaveManagerDelegate {
                     pauseOverlay = nil
                     isPaused_ = false
                     navigateBack()
+                    return
+                }
+                if name.hasPrefix("difficultyBtn_"),
+                   let rawVal = Int(name.replacingOccurrences(of: "difficultyBtn_", with: "")),
+                   let diff = ReadingDifficulty(rawValue: rawVal) {
+                    ReadingDifficulty.current = diff
+                    // Rebuild pause overlay to reflect new selection
+                    pauseOverlay?.removeFromParent()
+                    pauseOverlay = nil
+                    isPaused_ = false
+                    showPauseOverlay()
                     return
                 }
             }

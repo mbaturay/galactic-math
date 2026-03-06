@@ -158,4 +158,12 @@ final class ProblemDisplayNode: SKNode {
         removeAction(forKey: "pulse")
         background.glowWidth = 2.0
     }
+
+    func hidePanel() {
+        alpha = 0
+    }
+
+    func revealPanel() {
+        alpha = 1.0
+    }
 }
