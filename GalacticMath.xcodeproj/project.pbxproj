@@ -49,6 +49,19 @@
 		A10000042 /* SafeAreaHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000042 /* SafeAreaHelper.swift */; };
 		A10000044 /* MotherMeteorNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000044 /* MotherMeteorNode.swift */; };
 		A10000045 /* ReadingDifficulty.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000045 /* ReadingDifficulty.swift */; };
+		A10000050 /* Spaceship_0.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000050 /* Spaceship_0.png */; };
+		A10000051 /* Spaceship_1.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000051 /* Spaceship_1.png */; };
+		A10000052 /* Spaceship_2.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000052 /* Spaceship_2.png */; };
+		A10000053 /* Spaceship_3.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000053 /* Spaceship_3.png */; };
+		A10000054 /* Spaceship_4.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000054 /* Spaceship_4.png */; };
+		A10000055 /* Spaceship_5.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000055 /* Spaceship_5.png */; };
+		A10000056 /* Spaceship_6.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000056 /* Spaceship_6.png */; };
+		A10000057 /* Spaceship_7.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000057 /* Spaceship_7.png */; };
+		A10000058 /* Spaceship_8.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000058 /* Spaceship_8.png */; };
+		A10000059 /* Spaceship_9.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000059 /* Spaceship_9.png */; };
+		A10000060 /* Spaceship_10.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000060 /* Spaceship_10.png */; };
+		A10000061 /* Spaceship_11.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000061 /* Spaceship_11.png */; };
+		A10000062 /* Spaceship_12.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000062 /* Spaceship_12.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -96,6 +109,19 @@
 		B10000044 /* MotherMeteorNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotherMeteorNode.swift; sourceTree = "<group>"; };
 		B10000045 /* ReadingDifficulty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingDifficulty.swift; sourceTree = "<group>"; };
 		C10000001 /* GalacticMath.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GalacticMath.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000050 /* Spaceship_0.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_0.png; sourceTree = "<group>"; };
+		B10000051 /* Spaceship_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_1.png; sourceTree = "<group>"; };
+		B10000052 /* Spaceship_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_2.png; sourceTree = "<group>"; };
+		B10000053 /* Spaceship_3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_3.png; sourceTree = "<group>"; };
+		B10000054 /* Spaceship_4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_4.png; sourceTree = "<group>"; };
+		B10000055 /* Spaceship_5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_5.png; sourceTree = "<group>"; };
+		B10000056 /* Spaceship_6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_6.png; sourceTree = "<group>"; };
+		B10000057 /* Spaceship_7.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_7.png; sourceTree = "<group>"; };
+		B10000058 /* Spaceship_8.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_8.png; sourceTree = "<group>"; };
+		B10000059 /* Spaceship_9.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_9.png; sourceTree = "<group>"; };
+		B10000060 /* Spaceship_10.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_10.png; sourceTree = "<group>"; };
+		B10000061 /* Spaceship_11.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_11.png; sourceTree = "<group>"; };
+		B10000062 /* Spaceship_12.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_12.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,6 +155,7 @@
 				E10000005 /* Systems */,
 				E10000006 /* Models */,
 				E10000007 /* UI */,
+				E10000009 /* Space Pack */,
 			);
 			path = GalacticMath;
 			sourceTree = "<group>";
@@ -215,6 +242,34 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		E10000009 /* Space Pack */ = {
+			isa = PBXGroup;
+			children = (
+				E10000010 /* Ships */,
+			);
+			path = "Space Pack";
+			sourceTree = "<group>";
+		};
+		E10000010 /* Ships */ = {
+			isa = PBXGroup;
+			children = (
+				B10000050 /* Spaceship_0.png */,
+				B10000051 /* Spaceship_1.png */,
+				B10000052 /* Spaceship_2.png */,
+				B10000053 /* Spaceship_3.png */,
+				B10000054 /* Spaceship_4.png */,
+				B10000055 /* Spaceship_5.png */,
+				B10000056 /* Spaceship_6.png */,
+				B10000057 /* Spaceship_7.png */,
+				B10000058 /* Spaceship_8.png */,
+				B10000059 /* Spaceship_9.png */,
+				B10000060 /* Spaceship_10.png */,
+				B10000061 /* Spaceship_11.png */,
+				B10000062 /* Spaceship_12.png */,
+			);
+			path = Ships;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -273,6 +328,19 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000050 /* Spaceship_0.png in Resources */,
+				A10000051 /* Spaceship_1.png in Resources */,
+				A10000052 /* Spaceship_2.png in Resources */,
+				A10000053 /* Spaceship_3.png in Resources */,
+				A10000054 /* Spaceship_4.png in Resources */,
+				A10000055 /* Spaceship_5.png in Resources */,
+				A10000056 /* Spaceship_6.png in Resources */,
+				A10000057 /* Spaceship_7.png in Resources */,
+				A10000058 /* Spaceship_8.png in Resources */,
+				A10000059 /* Spaceship_9.png in Resources */,
+				A10000060 /* Spaceship_10.png in Resources */,
+				A10000061 /* Spaceship_11.png in Resources */,
+				A10000062 /* Spaceship_12.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

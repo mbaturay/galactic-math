@@ -94,6 +94,12 @@ final class GameManager {
         saveSlot(slotIndex)
     }
 
+    func selectShip(_ shipIndex: Int) {
+        guard let idx = currentSlotIndex, slots[idx] != nil else { return }
+        slots[idx]!.selectedShipIndex = shipIndex
+        saveSlot(idx)
+    }
+
     func firstEmptySlot() -> Int? {
         for i in 0..<GameManager.maxSlots {
             if slots[i] == nil { return i }

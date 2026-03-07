@@ -59,7 +59,7 @@ final class MotherMeteorNode: SKNode {
         self.targetSize = hudPanelSize
         self.onEnemiesReady = onEnemiesReady
         self.onComplete = completion
-        self.zPosition = 500
+        self.zPosition = 400
 
         motherRadius = min(sceneSize.width * 0.28, 140)
         motherCenter = CGPoint(x: sceneSize.width / 2, y: sceneSize.height / 2 + 20)

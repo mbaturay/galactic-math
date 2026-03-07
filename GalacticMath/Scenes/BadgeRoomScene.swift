@@ -4,6 +4,12 @@ final class BadgeRoomScene: SKScene {
     private var starField: StarField!
     private var popupVisible = false
 
+    // Tab state
+    private enum Tab { case badges, ships }
+    private var activeTab: Tab = .badges
+    private var tabBadgesBtn: SKNode!
+    private var tabShipsBtn: SKNode!
+
     // Badge data for tap lookup
     private struct BadgeInfo {
         let badge: Badge
@@ -24,6 +30,13 @@ final class BadgeRoomScene: SKScene {
     private var scrollVelocity: CGFloat = 0
     private var lastTouchTime: TimeInterval = 0
 
+    // Ship carousel
+    private static let shipCount = 13
+    private var selectedShipIndex: Int = 0
+    private var shipCarouselNodes: [SKNode] = []
+    private var lastTouchX: CGFloat = 0
+    private var carouselOffset: CGFloat = 0
+
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.03, green: 0.01, blue: 0.1, alpha: 1.0)
 
@@ -32,6 +45,7 @@ final class BadgeRoomScene: SKScene {
         addChild(starField)
 
         guard let profile = GameManager.shared.currentProfile else { return }
+        selectedShipIndex = profile.selectedShipIndex
 
         layoutScene(profile: profile)
     }
@@ -61,13 +75,18 @@ final class BadgeRoomScene: SKScene {
         title.fontColor = SKColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1.0)
         title.position = CGPoint(x: size.width / 2, y: topY)
         title.zPosition = 100
+        title.name = "titleLabel"
         addChild(title)
 
-        // Stats pills directly under title — no separate avatar row saves space
+        // Stats pills directly under title
         let statsBottomY = layoutStats(profile: profile, below: topY - 28)
 
-        // Scroll container setup
-        let scrollTop = statsBottomY - 14
+        // Tab buttons
+        let tabY = statsBottomY - 18
+        layoutTabs(atY: tabY, grade: profile.currentGrade)
+
+        // Content area below tabs
+        let scrollTop = tabY - 24
         let scrollBottom: CGFloat = 20
         visibleHeight = scrollTop - scrollBottom
 
@@ -83,23 +102,333 @@ final class BadgeRoomScene: SKScene {
         cropNode.addChild(scrollContainer)
         addChild(cropNode)
 
-        // Badge matrix (into scrollContainer)
-        let matrixBottomY = layoutMatrix(profile: profile, startY: visibleHeight)
+        showBadgesTab(profile: profile)
+    }
 
-        // Special badges (into scrollContainer)
-        let contentBottomY = layoutSpecialBadges(profile: profile, below: matrixBottomY - 14)
+    // MARK: - Tabs
 
-        // Calculate scrollable range
-        let totalContentHeight = visibleHeight - contentBottomY
-        scrollableHeight = max(0, totalContentHeight - visibleHeight)
+    private func layoutTabs(atY y: CGFloat, grade: Grade) {
+        let tabW: CGFloat = min(size.width * 0.38, 130)
+        let gap: CGFloat = 10
+        let leftX = size.width / 2 - tabW - gap / 2
+        let rightX = size.width / 2 + gap / 2
+
+        tabBadgesBtn = createTabButton(text: "Badges", x: leftX, y: y, width: tabW, active: true, grade: grade)
+        tabBadgesBtn.name = "tabBadges"
+        addChild(tabBadgesBtn)
+
+        tabShipsBtn = createTabButton(text: "Ships", x: rightX, y: y, width: tabW, active: false, grade: grade)
+        tabShipsBtn.name = "tabShips"
+        addChild(tabShipsBtn)
+    }
+
+    private func createTabButton(text: String, x: CGFloat, y: CGFloat, width: CGFloat, active: Bool, grade: Grade) -> SKNode {
+        let btn = SKNode()
+        btn.position = CGPoint(x: x + width / 2, y: y)
+        btn.zPosition = 100
+
+        let bg = SKShapeNode(rectOf: CGSize(width: width, height: 30), cornerRadius: 15)
+        bg.fillColor = active ? grade.primaryColor.withAlphaComponent(0.35) : SKColor(white: 0.1, alpha: 0.5)
+        bg.strokeColor = active ? grade.primaryColor.withAlphaComponent(0.8) : SKColor(white: 0.25, alpha: 0.5)
+        bg.lineWidth = active ? 2.0 : 1.0
+        bg.name = "tabBg"
+        btn.addChild(bg)
+
+        let label = SKLabelNode(text: text)
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = 13
+        label.fontColor = active ? .white : SKColor(white: 0.5, alpha: 0.8)
+        label.verticalAlignmentMode = .center
+        label.name = "tabLabel"
+        btn.addChild(label)
+
+        return btn
+    }
+
+    private func switchToTab(_ tab: Tab) {
+        guard tab != activeTab else { return }
+        activeTab = tab
+        guard let profile = GameManager.shared.currentProfile else { return }
+        let grade = profile.currentGrade
+
+        // Update tab visuals
+        updateTabVisuals(grade: grade)
+
+        // Update title
+        if let titleNode = childNode(withName: "titleLabel") as? SKLabelNode {
+            titleNode.text = tab == .badges ? "Badge Room" : "Ship Hangar"
+        }
+
+        // Clear scroll content
+        scrollContainer.removeAllChildren()
+        badgeInfoMap.removeAll()
+        shipCarouselNodes.removeAll()
         scrollOffset = 0
         scrollContainer.position.y = 0
+
+        switch tab {
+        case .badges:
+            showBadgesTab(profile: profile)
+        case .ships:
+            showShipsTab(profile: profile)
+        }
+    }
+
+    private func updateTabVisuals(grade: Grade) {
+        let badgesActive = activeTab == .badges
+        let shipsActive = activeTab == .ships
+
+        if let bg = tabBadgesBtn.childNode(withName: "tabBg") as? SKShapeNode {
+            bg.fillColor = badgesActive ? grade.primaryColor.withAlphaComponent(0.35) : SKColor(white: 0.1, alpha: 0.5)
+            bg.strokeColor = badgesActive ? grade.primaryColor.withAlphaComponent(0.8) : SKColor(white: 0.25, alpha: 0.5)
+            bg.lineWidth = badgesActive ? 2.0 : 1.0
+        }
+        if let label = tabBadgesBtn.childNode(withName: "tabLabel") as? SKLabelNode {
+            label.fontColor = badgesActive ? .white : SKColor(white: 0.5, alpha: 0.8)
+        }
+
+        if let bg = tabShipsBtn.childNode(withName: "tabBg") as? SKShapeNode {
+            bg.fillColor = shipsActive ? grade.primaryColor.withAlphaComponent(0.35) : SKColor(white: 0.1, alpha: 0.5)
+            bg.strokeColor = shipsActive ? grade.primaryColor.withAlphaComponent(0.8) : SKColor(white: 0.25, alpha: 0.5)
+            bg.lineWidth = shipsActive ? 2.0 : 1.0
+        }
+        if let label = tabShipsBtn.childNode(withName: "tabLabel") as? SKLabelNode {
+            label.fontColor = shipsActive ? .white : SKColor(white: 0.5, alpha: 0.8)
+        }
+    }
+
+    // MARK: - Badges Tab
+
+    private func showBadgesTab(profile: PlayerProfile) {
+        let matrixBottomY = layoutMatrix(profile: profile, startY: visibleHeight)
+        let contentBottomY = layoutSpecialBadges(profile: profile, below: matrixBottomY - 14)
+        let totalContentHeight = visibleHeight - contentBottomY
+        scrollableHeight = max(0, totalContentHeight - visibleHeight)
+    }
+
+    // MARK: - Ships Tab
+
+    private func showShipsTab(profile: PlayerProfile) {
+        scrollableHeight = 0  // No vertical scrolling for ships
+
+        let grade = profile.currentGrade
+        let centerY = visibleHeight * 0.55
+        let shipSize: CGFloat = min(size.width * 0.35, 140)
+        let cardSpacing: CGFloat = shipSize + 30
+        let totalW = CGFloat(BadgeRoomScene.shipCount) * cardSpacing
+
+        // Instruction text
+        let hint = SKLabelNode(text: "SWIPE TO BROWSE - TAP TO SELECT")
+        hint.fontName = "AvenirNext-Medium"
+        hint.fontSize = 10
+        hint.fontColor = SKColor(white: 0.5, alpha: 0.7)
+        hint.position = CGPoint(x: size.width / 2, y: visibleHeight - 10)
+        hint.zPosition = 12
+        scrollContainer.addChild(hint)
+
+        // Ship name label
+        let nameLabel = SKLabelNode(text: shipName(for: selectedShipIndex))
+        nameLabel.fontName = "AvenirNext-Heavy"
+        nameLabel.fontSize = 20
+        nameLabel.fontColor = .white
+        nameLabel.position = CGPoint(x: size.width / 2, y: centerY + shipSize / 2 + 30)
+        nameLabel.zPosition = 12
+        nameLabel.name = "shipNameLabel"
+        scrollContainer.addChild(nameLabel)
+
+        // Ship cards
+        shipCarouselNodes.removeAll()
+        for i in 0..<BadgeRoomScene.shipCount {
+            let card = buildShipCard(index: i, shipSize: shipSize, grade: grade)
+            card.name = "shipCard_\(i)"
+            scrollContainer.addChild(card)
+            shipCarouselNodes.append(card)
+        }
+
+        // Select button
+        let selectBtn = SKNode()
+        selectBtn.position = CGPoint(x: size.width / 2, y: centerY - shipSize / 2 - 50)
+        selectBtn.zPosition = 12
+        selectBtn.name = "selectShipBtn"
+
+        let isAlreadySelected = selectedShipIndex == profile.selectedShipIndex
+        let btnBg = SKShapeNode(rectOf: CGSize(width: 160, height: 44), cornerRadius: 12)
+        btnBg.fillColor = isAlreadySelected
+            ? SKColor(white: 0.15, alpha: 0.6)
+            : grade.primaryColor.withAlphaComponent(0.4)
+        btnBg.strokeColor = isAlreadySelected
+            ? SKColor(white: 0.4, alpha: 0.5)
+            : grade.primaryColor.withAlphaComponent(0.9)
+        btnBg.lineWidth = 2.0
+        btnBg.name = "selectBtnBg"
+        selectBtn.addChild(btnBg)
+
+        let btnLabel = SKLabelNode(text: isAlreadySelected ? "SELECTED" : "SELECT SHIP")
+        btnLabel.fontName = "AvenirNext-Bold"
+        btnLabel.fontSize = 16
+        btnLabel.fontColor = .white
+        btnLabel.verticalAlignmentMode = .center
+        btnLabel.name = "selectBtnLabel"
+        selectBtn.addChild(btnLabel)
+
+        scrollContainer.addChild(selectBtn)
+
+        // Ship index dots
+        let dotSpacing: CGFloat = 14
+        let dotsStartX = size.width / 2 - CGFloat(BadgeRoomScene.shipCount - 1) * dotSpacing / 2
+        for i in 0..<BadgeRoomScene.shipCount {
+            let dot = SKShapeNode(circleOfRadius: i == selectedShipIndex ? 4 : 3)
+            dot.fillColor = i == selectedShipIndex ? grade.primaryColor : SKColor(white: 0.3, alpha: 0.6)
+            dot.strokeColor = .clear
+            dot.position = CGPoint(x: dotsStartX + CGFloat(i) * dotSpacing, y: centerY - shipSize / 2 - 20)
+            dot.zPosition = 12
+            dot.name = "shipDot_\(i)"
+            scrollContainer.addChild(dot)
+        }
+
+        carouselOffset = CGFloat(selectedShipIndex) * cardSpacing
+        updateCarouselLayout(animated: false)
+    }
+
+    private func buildShipCard(index: Int, shipSize: CGFloat, grade: Grade) -> SKNode {
+        let card = SKNode()
+        card.zPosition = 11
+
+        // Card background
+        let isSelected = index == selectedShipIndex
+        let bg = SKShapeNode(rectOf: CGSize(width: shipSize + 20, height: shipSize + 20), cornerRadius: 16)
+        bg.fillColor = isSelected
+            ? grade.primaryColor.withAlphaComponent(0.15)
+            : SKColor(white: 0.08, alpha: 0.5)
+        bg.strokeColor = isSelected
+            ? grade.primaryColor.withAlphaComponent(0.7)
+            : SKColor(white: 0.2, alpha: 0.3)
+        bg.lineWidth = isSelected ? 2.5 : 1.0
+        bg.name = "cardBg"
+        card.addChild(bg)
+
+        // Ship sprite
+        let textureName = "Spaceship_\(index)"
+        let texture = SKTexture(imageNamed: textureName)
+        let sprite = SKSpriteNode(texture: texture)
+        let maxDim = max(sprite.size.width, sprite.size.height)
+        let scale = shipSize * 0.75 / maxDim
+        sprite.setScale(scale)
+        sprite.zPosition = 1
+        card.addChild(sprite)
+
+        return card
+    }
+
+    private func updateCarouselLayout(animated: Bool) {
+        let centerY = visibleHeight * 0.55
+        let shipSize: CGFloat = min(size.width * 0.35, 140)
+        let cardSpacing: CGFloat = shipSize + 30
+        let centerX = size.width / 2
+
+        for (i, card) in shipCarouselNodes.enumerated() {
+            let targetX = centerX + CGFloat(i) * cardSpacing - carouselOffset
+            let distFromCenter = abs(targetX - centerX)
+            let normalizedDist = min(distFromCenter / cardSpacing, 2.0)
+
+            // Scale: 1.0 at center, 0.7 at edges
+            let cardScale = 1.0 - normalizedDist * 0.15
+            // Alpha: 1.0 at center, 0.4 at edges
+            let cardAlpha = 1.0 - normalizedDist * 0.3
+
+            let targetPos = CGPoint(x: targetX, y: centerY)
+
+            if animated {
+                card.run(SKAction.group([
+                    SKAction.move(to: targetPos, duration: 0.2),
+                    SKAction.scale(to: cardScale, duration: 0.2),
+                    SKAction.fadeAlpha(to: cardAlpha, duration: 0.2)
+                ]))
+            } else {
+                card.position = targetPos
+                card.setScale(cardScale)
+                card.alpha = cardAlpha
+            }
+        }
+    }
+
+    private func snapToNearestShip() {
+        let shipSize: CGFloat = min(size.width * 0.35, 140)
+        let cardSpacing: CGFloat = shipSize + 30
+
+        var nearestIndex = Int((carouselOffset / cardSpacing).rounded())
+        nearestIndex = max(0, min(nearestIndex, BadgeRoomScene.shipCount - 1))
+
+        selectedShipIndex = nearestIndex
+        carouselOffset = CGFloat(nearestIndex) * cardSpacing
+        updateCarouselLayout(animated: true)
+        updateShipUI()
+    }
+
+    private func updateShipUI() {
+        guard let profile = GameManager.shared.currentProfile else { return }
+        let grade = profile.currentGrade
+
+        // Update name
+        if let nameLabel = scrollContainer.childNode(withName: "shipNameLabel") as? SKLabelNode {
+            nameLabel.text = shipName(for: selectedShipIndex)
+        }
+
+        // Update dots
+        for i in 0..<BadgeRoomScene.shipCount {
+            if let dot = scrollContainer.childNode(withName: "shipDot_\(i)") as? SKShapeNode {
+                dot.fillColor = i == selectedShipIndex ? grade.primaryColor : SKColor(white: 0.3, alpha: 0.6)
+                let r: CGFloat = i == selectedShipIndex ? 4 : 3
+                dot.path = CGPath(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2), transform: nil)
+            }
+        }
+
+        // Update card highlights
+        for (i, card) in shipCarouselNodes.enumerated() {
+            if let bg = card.childNode(withName: "cardBg") as? SKShapeNode {
+                let isSelected = i == selectedShipIndex
+                bg.fillColor = isSelected
+                    ? grade.primaryColor.withAlphaComponent(0.15)
+                    : SKColor(white: 0.08, alpha: 0.5)
+                bg.strokeColor = isSelected
+                    ? grade.primaryColor.withAlphaComponent(0.7)
+                    : SKColor(white: 0.2, alpha: 0.3)
+                bg.lineWidth = isSelected ? 2.5 : 1.0
+            }
+        }
+
+        // Update select button
+        let isAlreadySelected = selectedShipIndex == profile.selectedShipIndex
+        if let btn = scrollContainer.childNode(withName: "selectShipBtn") {
+            if let bg = btn.childNode(withName: "selectBtnBg") as? SKShapeNode {
+                bg.fillColor = isAlreadySelected
+                    ? SKColor(white: 0.15, alpha: 0.6)
+                    : grade.primaryColor.withAlphaComponent(0.4)
+                bg.strokeColor = isAlreadySelected
+                    ? SKColor(white: 0.4, alpha: 0.5)
+                    : grade.primaryColor.withAlphaComponent(0.9)
+            }
+            if let label = btn.childNode(withName: "selectBtnLabel") as? SKLabelNode {
+                label.text = isAlreadySelected ? "SELECTED" : "SELECT SHIP"
+            }
+        }
+    }
+
+    private func shipName(for index: Int) -> String {
+        let names = [
+            "Starfighter Alpha", "Nova Striker", "Phantom Wing",
+            "Ice Lance", "Solar Dart", "Titan Hawk",
+            "Nebula Cruiser", "Storm Eagle", "Shadow Blade",
+            "Comet Chaser", "Void Runner", "Crystal Viper",
+            "Dark Sentinel"
+        ]
+        guard index < names.count else { return "Ship \(index)" }
+        return names[index]
     }
 
     // MARK: - Stats Section
 
     private func layoutStats(profile: PlayerProfile, below topY: CGFloat) -> CGFloat {
-        // Stat pills (avatar is now in the nav bar row)
         let pillY = topY
         let hours = Int(profile.totalPlayTime) / 3600
         let mins = (Int(profile.totalPlayTime) % 3600) / 60
@@ -114,7 +443,7 @@ final class BadgeRoomScene: SKScene {
             "\u{1F3C6} \(badgeCount)/\(Badge.totalCount)"
         ]
 
-        let pillW: CGFloat = (size.width - 32 - 12) / 4  // 16pt margins, 4pt gaps × 3
+        let pillW: CGFloat = (size.width - 32 - 12) / 4
         let startX: CGFloat = 16 + pillW / 2
 
         let grade = profile.currentGrade
@@ -150,11 +479,10 @@ final class BadgeRoomScene: SKScene {
         let labelW: CGFloat = 28
         let marginX: CGFloat = 12
 
-        // Calculate spacing to fill available width
         let contentW = 5 * cellSize + gradSize + labelW
-        let gapCount: CGFloat = 5  // 5 gaps between 6 cells
+        let gapCount: CGFloat = 5
         let availableForGaps = size.width - 2 * marginX - contentW
-        let spacing = max(3, availableForGaps / (gapCount + 1))  // +1 for gap after label
+        let spacing = max(3, availableForGaps / (gapCount + 1))
 
         let matrixW = labelW + spacing + 5 * cellSize + gradSize + gapCount * spacing
         let originX = max(marginX, (size.width - matrixW) / 2)
@@ -169,7 +497,6 @@ final class BadgeRoomScene: SKScene {
             let topics = Curriculum.topicList(for: grade)
             let isCurrentGrade = grade == currentGrade
 
-            // Current grade row highlight
             if isCurrentGrade {
                 let highlightW = matrixW + 10
                 let bg = SKShapeNode(rectOf: CGSize(width: highlightW, height: rowHeight - 2), cornerRadius: 8)
@@ -181,7 +508,6 @@ final class BadgeRoomScene: SKScene {
                 scrollContainer.addChild(bg)
             }
 
-            // Row label
             let rowLabel = SKLabelNode(text: grade.shortName)
             rowLabel.fontName = "AvenirNext-Bold"
             rowLabel.fontSize = 11
@@ -192,7 +518,6 @@ final class BadgeRoomScene: SKScene {
             rowLabel.zPosition = 10
             scrollContainer.addChild(rowLabel)
 
-            // Badge cells
             var cellX = originX + labelW + spacing
 
             for (col, badge) in badges.enumerated() {
@@ -214,7 +539,6 @@ final class BadgeRoomScene: SKScene {
                 container.zPosition = 10
                 container.name = nodeName
 
-                // Background
                 let bg: SKShapeNode
                 if isGrad {
                     bg = SKShapeNode(rectOf: CGSize(width: thisSize, height: thisSize), cornerRadius: 8)
@@ -243,7 +567,6 @@ final class BadgeRoomScene: SKScene {
                 }
                 container.addChild(bg)
 
-                // Emoji
                 let emojiLabel = SKLabelNode(text: badge.emoji)
                 emojiLabel.fontSize = 32
                 emojiLabel.verticalAlignmentMode = .center
@@ -271,7 +594,7 @@ final class BadgeRoomScene: SKScene {
         header.zPosition = 10
         scrollContainer.addChild(header)
 
-        let specials = Badge.specialBadges  // 10 badges
+        let specials = Badge.specialBadges
         let cellSize: CGFloat = 54
         let spacing: CGFloat = 6
         let perRow = 5
@@ -281,8 +604,8 @@ final class BadgeRoomScene: SKScene {
         var lowestY = topY
 
         for (i, badge) in specials.enumerated() {
-            let row = i / perRow      // 0 or 1
-            let col = i % perRow      // 0-4
+            let row = i / perRow
+            let col = i % perRow
             let x = startX + CGFloat(col) * (cellSize + spacing)
             let y = topY - 28 - CGFloat(row) * (cellSize + spacing)
             let earned = profile.hasBadge(badge)
@@ -364,7 +687,6 @@ final class BadgeRoomScene: SKScene {
     private func showBadgePopup(info: BadgeInfo) {
         popupVisible = true
 
-        // Dim overlay
         let overlay = SKShapeNode(rectOf: CGSize(width: size.width * 2, height: size.height * 2))
         overlay.position = CGPoint(x: size.width / 2, y: size.height / 2)
         overlay.fillColor = SKColor(white: 0, alpha: 0.65)
@@ -515,7 +837,6 @@ final class BadgeRoomScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
 
-        // Dismiss popup on any tap
         if popupVisible {
             dismissPopup()
             return
@@ -523,6 +844,7 @@ final class BadgeRoomScene: SKScene {
 
         let location = touch.location(in: self)
         lastTouchY = location.y
+        lastTouchX = location.x
         lastTouchTime = touch.timestamp
         isDragging = false
         scrollVelocity = 0
@@ -533,23 +855,39 @@ final class BadgeRoomScene: SKScene {
         if popupVisible { return }
 
         let location = touch.location(in: self)
-        let deltaY = location.y - lastTouchY
 
-        if !isDragging && abs(deltaY) > 5 {
-            isDragging = true
-        }
-
-        if isDragging {
-            scrollOffset -= deltaY
-            clampScrollOffset()
-            scrollContainer.position.y = scrollOffset
-
-            let dt = touch.timestamp - lastTouchTime
-            if dt > 0 {
-                scrollVelocity = deltaY / CGFloat(dt)
+        if activeTab == .ships {
+            let deltaX = location.x - lastTouchX
+            if !isDragging && abs(deltaX) > 5 {
+                isDragging = true
             }
-            lastTouchY = location.y
-            lastTouchTime = touch.timestamp
+            if isDragging {
+                carouselOffset -= deltaX
+                // Clamp
+                let shipSize: CGFloat = min(size.width * 0.35, 140)
+                let cardSpacing: CGFloat = shipSize + 30
+                let maxOffset = CGFloat(BadgeRoomScene.shipCount - 1) * cardSpacing
+                carouselOffset = max(-cardSpacing * 0.3, min(carouselOffset, maxOffset + cardSpacing * 0.3))
+                updateCarouselLayout(animated: false)
+                lastTouchX = location.x
+            }
+        } else {
+            let deltaY = location.y - lastTouchY
+            if !isDragging && abs(deltaY) > 5 {
+                isDragging = true
+            }
+            if isDragging {
+                scrollOffset -= deltaY
+                clampScrollOffset()
+                scrollContainer.position.y = scrollOffset
+
+                let dt = touch.timestamp - lastTouchTime
+                if dt > 0 {
+                    scrollVelocity = deltaY / CGFloat(dt)
+                }
+                lastTouchY = location.y
+                lastTouchTime = touch.timestamp
+            }
         }
     }
 
@@ -557,8 +895,13 @@ final class BadgeRoomScene: SKScene {
         guard let touch = touches.first else { return }
         if popupVisible { return }
 
+        if activeTab == .ships && isDragging {
+            isDragging = false
+            snapToNearestShip()
+            return
+        }
+
         if isDragging {
-            // Momentum — velocity is already tracked
             isDragging = false
             return
         }
@@ -567,7 +910,7 @@ final class BadgeRoomScene: SKScene {
         let location = touch.location(in: self)
         AudioManager.shared.playMenuTap()
 
-        // Back button (on self)
+        // Back button
         if let backBtn = childNode(withName: "backButton") {
             let dist = hypot(location.x - backBtn.position.x, location.y - backBtn.position.y)
             if dist < 50 {
@@ -576,6 +919,60 @@ final class BadgeRoomScene: SKScene {
                 view?.presentScene(scene, transition: SKTransition.push(with: .right, duration: 0.5))
                 return
             }
+        }
+
+        // Tab buttons
+        if let badgesBtn = tabBadgesBtn {
+            let dist = hypot(location.x - badgesBtn.position.x, location.y - badgesBtn.position.y)
+            if dist < 70 {
+                switchToTab(.badges)
+                return
+            }
+        }
+        if let shipsBtn = tabShipsBtn {
+            let dist = hypot(location.x - shipsBtn.position.x, location.y - shipsBtn.position.y)
+            if dist < 70 {
+                switchToTab(.ships)
+                return
+            }
+        }
+
+        // Ships tab: select button
+        if activeTab == .ships {
+            let scrollLocation = touch.location(in: scrollContainer)
+            if let selectBtn = scrollContainer.childNode(withName: "selectShipBtn") {
+                let dist = hypot(scrollLocation.x - selectBtn.position.x, scrollLocation.y - selectBtn.position.y)
+                if dist < 80 {
+                    GameManager.shared.selectShip(selectedShipIndex)
+                    updateShipUI()
+
+                    // Brief confirmation flash
+                    if let bg = selectBtn.childNode(withName: "selectBtnBg") as? SKShapeNode {
+                        bg.run(SKAction.sequence([
+                            SKAction.run { bg.glowWidth = 6 },
+                            SKAction.wait(forDuration: 0.2),
+                            SKAction.run { bg.glowWidth = 0 }
+                        ]))
+                    }
+                    return
+                }
+            }
+
+            // Tap on a ship card
+            for (i, card) in shipCarouselNodes.enumerated() {
+                let scrollLocation2 = touch.location(in: scrollContainer)
+                let dist = hypot(scrollLocation2.x - card.position.x, scrollLocation2.y - card.position.y)
+                if dist < 70 {
+                    let shipSize: CGFloat = min(size.width * 0.35, 140)
+                    let cardSpacing: CGFloat = shipSize + 30
+                    selectedShipIndex = i
+                    carouselOffset = CGFloat(i) * cardSpacing
+                    updateCarouselLayout(animated: true)
+                    updateShipUI()
+                    return
+                }
+            }
+            return
         }
 
         // Badge tap (in scrollContainer coordinate space)
@@ -592,6 +989,11 @@ final class BadgeRoomScene: SKScene {
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if activeTab == .ships && isDragging {
+            isDragging = false
+            snapToNearestShip()
+            return
+        }
         isDragging = false
         scrollVelocity = 0
     }
@@ -601,7 +1003,7 @@ final class BadgeRoomScene: SKScene {
     override func update(_ currentTime: TimeInterval) {
         starField?.update(deltaTime: 1.0 / 60.0)
 
-        if !isDragging && abs(scrollVelocity) > 1 {
+        if activeTab == .badges && !isDragging && abs(scrollVelocity) > 1 {
             scrollOffset -= scrollVelocity * (1.0 / 60.0)
             scrollVelocity *= 0.92
             clampScrollOffset()
@@ -611,4 +1013,3 @@ final class BadgeRoomScene: SKScene {
         }
     }
 }
-

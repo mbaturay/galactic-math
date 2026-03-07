@@ -20,6 +20,7 @@ struct PlayerProfile: Codable {
     var longestStreak: Int
     var bestZone: String
     var hasSeenProximityTip: Bool
+    var selectedShipIndex: Int
 
     init(slotIndex: Int, name: String, avatar: String, grade: Grade) {
         self.slotIndex = slotIndex
@@ -41,6 +42,7 @@ struct PlayerProfile: Codable {
         self.longestStreak = 0
         self.bestZone = ""
         self.hasSeenProximityTip = false
+        self.selectedShipIndex = 0
     }
 
     init(from decoder: Decoder) throws {
@@ -64,6 +66,7 @@ struct PlayerProfile: Codable {
         longestStreak = try container.decodeIfPresent(Int.self, forKey: .longestStreak) ?? 0
         bestZone = try container.decodeIfPresent(String.self, forKey: .bestZone) ?? ""
         hasSeenProximityTip = try container.decodeIfPresent(Bool.self, forKey: .hasSeenProximityTip) ?? false
+        selectedShipIndex = try container.decodeIfPresent(Int.self, forKey: .selectedShipIndex) ?? 0
     }
 
     func currentLevel(for grade: Grade) -> Int {

@@ -193,8 +193,8 @@ final class GameScene: SKScene, WaveManagerDelegate {
         playerShip = PlayerShip()
         playerShip.setup(grade: selectedGrade)
         let shipX = beamGrid.positionForBeam(currentBeam)
-        playerShip.position = CGPoint(x: shipX, y: enemyTargetY)
-        playerShip.zPosition = 20
+        playerShip.position = CGPoint(x: shipX, y: enemyTargetY + 60)
+        playerShip.zPosition = 500
         playerShip.currentBeam = currentBeam
         playerShip.setBeamAngle(beamGrid.beamAngle(at: currentBeam, y: enemyTargetY))
         addChild(playerShip)
@@ -240,7 +240,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
     // MARK: - Player Movement
 
     private func movePlayerLeft() {
-        guard isGameActive && !isPaused_ else { return }
+        guard !isPaused_ else { return }
         if currentBeam > 0 {
             currentBeam -= 1
             let x = beamGrid.positionForBeam(currentBeam)
@@ -252,7 +252,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
     }
 
     private func movePlayerRight() {
-        guard isGameActive && !isPaused_ else { return }
+        guard !isPaused_ else { return }
         if currentBeam < selectedGrade.beamCount - 1 {
             currentBeam += 1
             let x = beamGrid.positionForBeam(currentBeam)

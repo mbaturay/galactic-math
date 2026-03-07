@@ -2,28 +2,53 @@ import SpriteKit
 
 final class PlayerShip: SKNode {
     private var shipBody: SKShapeNode!
+    private var shipSprite: SKSpriteNode?
     private var engineTrail: SKEmitterNode?
     private var shieldNode: SKShapeNode?
     private var grade: Grade = .kindergarten
     var currentBeam: Int = 0
     var isInvincible: Bool = false
     private var isMoving: Bool = false
+    private var usesSprite: Bool = false
 
     func setup(grade: Grade) {
         self.grade = grade
         removeAllChildren()
 
-        switch grade.rawValue {
-        case 0...1:
-            buildCadetShip()
-        case 2...3:
-            buildPilotShip()
-        default:
-            buildAceShip()
+        // Check if player has a custom ship selected
+        let shipIndex = GameManager.shared.currentProfile?.selectedShipIndex ?? 0
+        if shipIndex > 0 {
+            buildSpriteShip(index: shipIndex)
+        } else {
+            switch grade.rawValue {
+            case 0...1:
+                buildCadetShip()
+            case 2...3:
+                buildPilotShip()
+            default:
+                buildAceShip()
+            }
         }
 
         addEngineTrail()
         startIdleAnimation()
+    }
+
+    private func buildSpriteShip(index: Int) {
+        usesSprite = true
+        let texture = SKTexture(imageNamed: "Spaceship_\(index)")
+        let sprite = SKSpriteNode(texture: texture)
+        let maxDim = max(sprite.size.width, sprite.size.height)
+        let scale = 77.0 / maxDim  // Fit within ~77pt (1.4x bigger, prominent)
+        sprite.setScale(scale)
+        addChild(sprite)
+        shipSprite = sprite
+
+        // Invisible shape body for compatibility (victorySpin, etc.)
+        shipBody = SKShapeNode(circleOfRadius: 1)
+        shipBody.strokeColor = .clear
+        shipBody.fillColor = .clear
+        addChild(shipBody)
     }
 
     private func buildCadetShip() {
@@ -167,7 +192,8 @@ final class PlayerShip: SKNode {
             SKAction.moveBy(x: 0, y: 3, duration: 1.2),
             SKAction.moveBy(x: 0, y: -3, duration: 1.2)
         ])
-        shipBody.run(SKAction.repeatForever(bob), withKey: "idle")
+        let target: SKNode = usesSprite ? (shipSprite ?? shipBody) : shipBody
+        target.run(SKAction.repeatForever(bob), withKey: "idle")
     }
 
     func moveToBeam(_ beam: Int, x: CGFloat, beamAngle: CGFloat, duration: TimeInterval = 0.15) {
@@ -229,7 +255,11 @@ final class PlayerShip: SKNode {
 
     func victorySpin() {
         let spin = SKAction.rotate(byAngle: .pi * 2, duration: 0.5)
-        shipBody.run(spin)
+        if usesSprite {
+            shipSprite?.run(spin)
+        } else {
+            shipBody.run(spin)
+        }
     }
 
     func hitFlash() {

@@ -23,6 +23,7 @@ Galactic Math is a SpriteKit arcade game that blends classic space action with a
 - `Nodes/` - SpriteKit nodes and effects
 - `Systems/` - Game systems (difficulty, math, waves)
 - `UI/` - HUD and interactive overlays
+- `Space Pack/` - Game Assets
 
 ## License
 MIT

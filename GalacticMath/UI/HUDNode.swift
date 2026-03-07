@@ -146,7 +146,7 @@ final class HUDNode: SKNode {
         let beamCount = grade.beamCount
         let spacing: CGFloat = 30
         let startX = sceneSize.width / 2 - CGFloat(beamCount - 1) * spacing / 2
-        let indicatorY: CGFloat = 100
+        let indicatorY: CGFloat = 5
 
         for i in 0..<beamCount {
             let dot = SKShapeNode(circleOfRadius: 5)
