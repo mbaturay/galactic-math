@@ -1,16 +1,18 @@
 import SpriteKit
 
 final class BeamGrid: SKNode {
-    private var baseBeamLines: [SKShapeNode] = []   // Grey, always visible
-    private var colorBeamLines: [SKShapeNode] = []  // Colored overlay, animated
+    private var baseBeamLines: [SKNode] = []    // Grey containers, always visible
+    private var colorBeamLines: [SKNode] = []   // Colored containers, animated
     private var gridLineNodes: [SKShapeNode] = []
     private var beamCount: Int = 5
     private var sceneSize: CGSize = .zero
     private var grade: Grade = .kindergarten
     private var activeBeamIndex: Int = -1
 
+    private let beamSegmentCount = 12
+
     // Grid line animation
-    private let gridLineCount = 14
+    private let gridLineCount = 16
     private var gridPhases: [CGFloat] = []
 
     var beamPositions: [CGFloat] = []
@@ -23,7 +25,7 @@ final class BeamGrid: SKNode {
 
     /// Center of the vanishing zone — used by GameScene for enemyStartY
     var vanishingPoint: CGPoint {
-        return CGPoint(x: sceneSize.width / 2, y: sceneSize.height * 0.85)
+        return CGPoint(x: sceneSize.width / 2, y: sceneSize.height * 0.92)
     }
 
     func setup(size: CGSize, grade: Grade) {
@@ -74,8 +76,8 @@ final class BeamGrid: SKNode {
     // MARK: - Vertical Beams
 
     private func drawBeams() {
-        for line in baseBeamLines { line.removeFromParent() }
-        for line in colorBeamLines { line.removeFromParent() }
+        for node in baseBeamLines { node.removeFromParent() }
+        for node in colorBeamLines { node.removeFromParent() }
         baseBeamLines.removeAll()
         colorBeamLines.removeAll()
 
@@ -83,29 +85,57 @@ final class BeamGrid: SKNode {
 
         for i in 0..<beamCount {
             let vp = vanishingPoints[i]
+            let bottomX = beamPositions[i]
+            let bottomY: CGFloat = 0
 
-            let path = CGMutablePath()
-            path.move(to: CGPoint(x: beamPositions[i], y: 0))
-            path.addLine(to: vp)
+            // Base layer container: light grey, always visible
+            let baseContainer = SKNode()
+            baseContainer.zPosition = -50
+            addChild(baseContainer)
+            baseBeamLines.append(baseContainer)
 
-            // Base layer: light grey, always visible
-            let base = SKShapeNode(path: path)
-            base.strokeColor = SKColor(white: 0.7, alpha: 0.38)
-            base.lineWidth = 1.5
-            base.glowWidth = 0
-            base.zPosition = -50
-            addChild(base)
-            baseBeamLines.append(base)
+            // Color overlay container: hidden by default
+            let colorContainer = SKNode()
+            colorContainer.zPosition = -49
+            colorContainer.alpha = 0
+            addChild(colorContainer)
+            colorBeamLines.append(colorContainer)
 
-            // Color overlay: beam-specific color, hidden by default
-            let colorLine = SKShapeNode(path: path)
-            colorLine.strokeColor = colors[i % colors.count]
-            colorLine.lineWidth = 2.8
-            colorLine.glowWidth = 0
-            colorLine.alpha = 0
-            colorLine.zPosition = -49
-            addChild(colorLine)
-            colorBeamLines.append(colorLine)
+            for s in 0..<beamSegmentCount {
+                let t0 = CGFloat(s) / CGFloat(beamSegmentCount)
+                let t1 = CGFloat(s + 1) / CGFloat(beamSegmentCount)
+                let tMid = (t0 + t1) / 2
+
+                // Interpolate from vanishing point (t=0) to bottom (t=1)
+                let x0 = vp.x + (bottomX - vp.x) * t0
+                let y0 = vp.y + (bottomY - vp.y) * t0
+                let x1 = vp.x + (bottomX - vp.x) * t1
+                let y1 = vp.y + (bottomY - vp.y) * t1
+
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: x0, y: y0))
+                path.addLine(to: CGPoint(x: x1, y: y1))
+
+                // Quadratic fade: 0 at VP, 1 at bottom
+                let segAlpha = tMid * tMid
+                let segWidth = 0.3 + 1.2 * tMid
+
+                // Base segment
+                let baseSeg = SKShapeNode(path: path)
+                baseSeg.strokeColor = SKColor(white: 0.7, alpha: 0.38)
+                baseSeg.lineWidth = segWidth
+                baseSeg.glowWidth = 0
+                baseSeg.alpha = segAlpha
+                baseContainer.addChild(baseSeg)
+
+                // Color segment
+                let colorSeg = SKShapeNode(path: path)
+                colorSeg.strokeColor = colors[i % colors.count]
+                colorSeg.lineWidth = segWidth + 1.3
+                colorSeg.glowWidth = 0
+                colorSeg.alpha = segAlpha
+                colorContainer.addChild(colorSeg)
+            }
         }
     }
 
@@ -177,6 +207,7 @@ final class BeamGrid: SKNode {
         let leftVP = vanishingPoints.first!
         let rightVP = vanishingPoints.last!
         let vpY = vanishingPoint.y
+        let maxGridY = vpY * 0.60  // Only lower 60% of the grid
 
         for i in 0..<gridPhases.count {
             gridPhases[i] += CGFloat(deltaTime) * scrollSpeed
@@ -185,7 +216,9 @@ final class BeamGrid: SKNode {
             }
 
             let phase = gridPhases[i]
-            let y = vpY * (1.0 - phase)
+            // Quadratic mapping: bunches lines at the top (perspective foreshortening)
+            let mappedPhase = phase * phase
+            let y = maxGridY * (1.0 - mappedPhase)
             let t = y / vpY
 
             // Left edge interpolates toward left vanishing point
@@ -198,8 +231,13 @@ final class BeamGrid: SKNode {
             path.addLine(to: CGPoint(x: rightX, y: y))
             gridLineNodes[i].path = path
 
-            // Subtle: 8% near vanishing point, 18% near player
-            gridLineNodes[i].alpha = 0.08 + (1.0 - t) * 0.10
+            // Fade: 0 at top of visible range, 0.18 at bottom
+            let normalizedHeight = y / maxGridY  // 0 at bottom, 1 at top
+            let lineAlpha = max(0, (1.0 - normalizedHeight) * 0.18)
+            gridLineNodes[i].alpha = lineAlpha
+
+            // Lines get thinner toward top
+            gridLineNodes[i].lineWidth = 0.3 + 0.5 * (1.0 - normalizedHeight)
         }
     }
 
@@ -233,31 +271,44 @@ final class BeamGrid: SKNode {
     // MARK: - Beam Cannon
 
     func chargeAllBeams() {
-        for line in colorBeamLines {
-            line.removeAction(forKey: "beamTransition")
-            line.removeAction(forKey: "beamFlash")
-            line.alpha = 1.0
-            line.glowWidth = 8
-            line.strokeColor = .white
+        for container in colorBeamLines {
+            container.removeAction(forKey: "beamTransition")
+            container.removeAction(forKey: "beamFlash")
+            container.alpha = 1.0
+            for child in container.children {
+                guard let seg = child as? SKShapeNode else { continue }
+                seg.glowWidth = 8
+                seg.strokeColor = .white
+                seg.alpha = 1.0
+            }
 
             let pulse = SKAction.sequence([
-                SKAction.run { [weak line] in line?.glowWidth = 12 },
+                SKAction.run { [weak container] in
+                    container?.children.compactMap { $0 as? SKShapeNode }.forEach { $0.glowWidth = 12 }
+                },
                 SKAction.wait(forDuration: 0.08),
-                SKAction.run { [weak line] in line?.glowWidth = 6 },
+                SKAction.run { [weak container] in
+                    container?.children.compactMap { $0 as? SKShapeNode }.forEach { $0.glowWidth = 6 }
+                },
                 SKAction.wait(forDuration: 0.08)
             ])
-            line.run(SKAction.repeatForever(pulse), withKey: "beamCharge")
+            container.run(SKAction.repeatForever(pulse), withKey: "beamCharge")
         }
     }
 
     func resetAllBeams() {
         let colors = grade.beamColors
-        for (i, line) in colorBeamLines.enumerated() {
-            line.removeAction(forKey: "beamCharge")
-            line.strokeColor = colors[i % colors.count]
-            line.lineWidth = 2.8
-            line.glowWidth = 0
-            line.alpha = i == activeBeamIndex ? 0.88 : 0
+        for (i, container) in colorBeamLines.enumerated() {
+            container.removeAction(forKey: "beamCharge")
+            for (s, child) in container.children.enumerated() {
+                guard let seg = child as? SKShapeNode else { continue }
+                let tMid = (CGFloat(s) + 0.5) / CGFloat(beamSegmentCount)
+                seg.strokeColor = colors[i % colors.count]
+                seg.lineWidth = 0.3 + 1.2 * tMid + 1.3
+                seg.glowWidth = 0
+                seg.alpha = tMid * tMid
+            }
+            container.alpha = i == activeBeamIndex ? 0.88 : 0
         }
     }
 
