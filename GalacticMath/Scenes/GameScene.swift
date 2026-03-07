@@ -164,7 +164,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
         beamGrid.setup(size: size, grade: selectedGrade)
         addChild(beamGrid)
         enemyStartY = beamGrid.vanishingPoint.y - 20
-        enemyTargetY = size.height * 0.10
+        enemyTargetY = size.height * 0.15
     }
 
     private func setupZoneIndicators() {
@@ -192,11 +192,12 @@ final class GameScene: SKScene, WaveManagerDelegate {
     private func setupPlayerShip() {
         playerShip = PlayerShip()
         playerShip.setup(grade: selectedGrade)
+        playerShip.configureBanking(laneCount: selectedGrade.beamCount)
         let shipX = beamGrid.positionForBeam(currentBeam)
-        playerShip.position = CGPoint(x: shipX, y: enemyTargetY + 60)
+        playerShip.position = CGPoint(x: shipX, y: enemyTargetY)
         playerShip.zPosition = 500
         playerShip.currentBeam = currentBeam
-        playerShip.setBeamAngle(beamGrid.beamAngle(at: currentBeam, y: enemyTargetY))
+        playerShip.setBeamAngle(beamGrid.beamAngle(at: currentBeam, y: enemyTargetY), laneIndex: currentBeam)
         addChild(playerShip)
 
         // Highlight starting beam
@@ -241,26 +242,26 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
     private func movePlayerLeft() {
         guard !isPaused_ else { return }
-        if currentBeam > 0 {
-            currentBeam -= 1
-            let x = beamGrid.positionForBeam(currentBeam)
-            let angle = beamGrid.beamAngle(at: currentBeam, y: enemyTargetY)
-            playerShip.moveToBeam(currentBeam, x: x, beamAngle: angle)
-            beamGrid.setActiveBeam(currentBeam)
-            hud.updateActiveBeam(currentBeam)
-        }
+        let newBeam = max(0, currentBeam - 1)
+        guard newBeam != currentBeam else { return }
+        currentBeam = newBeam
+        let x = beamGrid.positionForBeam(currentBeam)
+        let angle = beamGrid.beamAngle(at: currentBeam, y: enemyTargetY)
+        playerShip.moveToBeam(currentBeam, x: x, beamAngle: angle)
+        beamGrid.setActiveBeam(currentBeam)
+        hud.updateActiveBeam(currentBeam)
     }
 
     private func movePlayerRight() {
         guard !isPaused_ else { return }
-        if currentBeam < selectedGrade.beamCount - 1 {
-            currentBeam += 1
-            let x = beamGrid.positionForBeam(currentBeam)
-            let angle = beamGrid.beamAngle(at: currentBeam, y: enemyTargetY)
-            playerShip.moveToBeam(currentBeam, x: x, beamAngle: angle)
-            beamGrid.setActiveBeam(currentBeam)
-            hud.updateActiveBeam(currentBeam)
-        }
+        let newBeam = min(selectedGrade.beamCount - 1, currentBeam + 1)
+        guard newBeam != currentBeam else { return }
+        currentBeam = newBeam
+        let x = beamGrid.positionForBeam(currentBeam)
+        let angle = beamGrid.beamAngle(at: currentBeam, y: enemyTargetY)
+        playerShip.moveToBeam(currentBeam, x: x, beamAngle: angle)
+        beamGrid.setActiveBeam(currentBeam)
+        hud.updateActiveBeam(currentBeam)
     }
 
     // MARK: - Shooting
@@ -1103,6 +1104,11 @@ final class GameScene: SKScene, WaveManagerDelegate {
             addChild(asteroid)
             backgroundAsteroids.append(asteroid)
         }
+
+        // Clamp ship position as safety net
+        let minX = beamGrid.positionForBeam(0)
+        let maxX = beamGrid.positionForBeam(selectedGrade.beamCount - 1)
+        playerShip.position.x = min(maxX, max(minX, playerShip.position.x))
 
         // Move enemies down
         updateEnemies(deltaTime: dt)

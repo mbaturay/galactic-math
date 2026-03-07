@@ -107,12 +107,12 @@ final class TouchControlsNode: SKNode {
             return
         }
 
-        // Left/right relative to ship position
-        let splitX = shipXProvider?() ?? sceneSize.width / 2
-        if location.x < splitX {
-            onMoveLeft?()
-        } else {
+        // Determine direction: compare touch X to current ship X
+        let shipX = shipXProvider?() ?? (sceneSize.width / 2)
+        if location.x > shipX {
             onMoveRight?()
+        } else {
+            onMoveLeft?()
         }
     }
 

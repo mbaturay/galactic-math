@@ -196,28 +196,28 @@ final class PlayerShip: SKNode {
         target.run(SKAction.repeatForever(bob), withKey: "idle")
     }
 
-    func moveToBeam(_ beam: Int, x: CGFloat, beamAngle: CGFloat, duration: TimeInterval = 0.15) {
-        // Determine movement direction before updating currentBeam
-        let movingRight = beam > currentBeam
-        currentBeam = beam
+    /// Banking configuration — generated once per setup, works for any lane count.
+    private(set) var bankingConfig: ShipBankingConfig = .fiveLane
 
-        removeAction(forKey: "move")
-
-        // Bank slightly in the movement direction, then settle to beam angle.
-        // Moving right → nose tilts right (negative offset); left → tilts left (positive).
-        let bankOffset: CGFloat = movingRight ? -0.18 : 0.18
-        let bankedAngle = beamAngle + bankOffset
-
-        let move = SKAction.moveTo(x: x, duration: duration)
-        let bank = SKAction.rotate(toAngle: bankedAngle, duration: duration * 0.5, shortestUnitArc: true)
-        let settle = SKAction.rotate(toAngle: beamAngle, duration: duration * 0.5, shortestUnitArc: true)
-        let rotateSeq = SKAction.sequence([bank, settle])
-
-        run(SKAction.group([move, rotateSeq]), withKey: "move")
+    func configureBanking(laneCount: Int) {
+        switch laneCount {
+        case 3:  bankingConfig = .threeLane
+        case 5:  bankingConfig = .fiveLane
+        default: bankingConfig = .symmetric(laneCount: laneCount)
+        }
     }
 
-    func setBeamAngle(_ angle: CGFloat) {
-        zRotation = angle
+    func moveToBeam(_ beam: Int, x: CGFloat, beamAngle: CGFloat, duration: TimeInterval = 0.15) {
+        currentBeam = beam
+        moveToLane(beam, xPosition: x, config: bankingConfig, baseAngle: beamAngle)
+    }
+
+    func setBeamAngle(_ angle: CGFloat, laneIndex: Int? = nil) {
+        if let lane = laneIndex {
+            setBankAngle(for: lane, config: bankingConfig, baseAngle: angle)
+        } else {
+            zRotation = angle
+        }
     }
 
     func showShield() {

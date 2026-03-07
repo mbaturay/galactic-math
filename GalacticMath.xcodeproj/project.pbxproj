@@ -33,6 +33,11 @@
 		A10000024 /* MathProblem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000024 /* MathProblem.swift */; };
 		A10000026 /* MathTopic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000026 /* MathTopic.swift */; };
 		A10000027 /* PlayerProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000027 /* PlayerProgress.swift */; };
+		A10000028 /* HUDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000028 /* HUDNode.swift */; };
+		A10000029 /* TouchControlsNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000029 /* TouchControlsNode.swift */; };
+		A10000030 /* ProblemDisplayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000030 /* ProblemDisplayNode.swift */; };
+		A10000031 /* StarRatingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000031 /* StarRatingNode.swift */; };
+		A10000032 /* BackgroundAsteroid.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000033 /* BackgroundAsteroid.swift */; };
 		A10000033 /* Grade.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000034 /* Grade.swift */; };
 		A10000034 /* Curriculum.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000035 /* Curriculum.swift */; };
 		A10000035 /* Badge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000036 /* Badge.swift */; };
@@ -41,11 +46,6 @@
 		A10000038 /* TopicSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000039 /* TopicSelectScene.swift */; };
 		A10000039 /* BadgeRoomScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000040 /* BadgeRoomScene.swift */; };
 		A10000040 /* BadgeCelebrationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000041 /* BadgeCelebrationScene.swift */; };
-		A10000028 /* HUDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000028 /* HUDNode.swift */; };
-		A10000029 /* TouchControlsNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000029 /* TouchControlsNode.swift */; };
-		A10000030 /* ProblemDisplayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000030 /* ProblemDisplayNode.swift */; };
-		A10000031 /* StarRatingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000031 /* StarRatingNode.swift */; };
-		A10000032 /* BackgroundAsteroid.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000033 /* BackgroundAsteroid.swift */; };
 		A10000042 /* SafeAreaHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000042 /* SafeAreaHelper.swift */; };
 		A10000044 /* MotherMeteorNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000044 /* MotherMeteorNode.swift */; };
 		A10000045 /* ReadingDifficulty.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000045 /* ReadingDifficulty.swift */; };
@@ -62,6 +62,7 @@
 		A10000060 /* Spaceship_10.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000060 /* Spaceship_10.png */; };
 		A10000061 /* Spaceship_11.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000061 /* Spaceship_11.png */; };
 		A10000062 /* Spaceship_12.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000062 /* Spaceship_12.png */; };
+		D14585DE2F5CE34500E912DC /* ShipBanking.swift in Sources */ = {isa = PBXBuildFile; fileRef = D14585DD2F5CE34500E912DC /* ShipBanking.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -91,6 +92,12 @@
 		B10000024 /* MathProblem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathProblem.swift; sourceTree = "<group>"; };
 		B10000026 /* MathTopic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathTopic.swift; sourceTree = "<group>"; };
 		B10000027 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
+		B10000028 /* HUDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDNode.swift; sourceTree = "<group>"; };
+		B10000029 /* TouchControlsNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchControlsNode.swift; sourceTree = "<group>"; };
+		B10000030 /* ProblemDisplayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProblemDisplayNode.swift; sourceTree = "<group>"; };
+		B10000031 /* StarRatingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRatingNode.swift; sourceTree = "<group>"; };
+		B10000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B10000033 /* BackgroundAsteroid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundAsteroid.swift; sourceTree = "<group>"; };
 		B10000034 /* Grade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Grade.swift; sourceTree = "<group>"; };
 		B10000035 /* Curriculum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curriculum.swift; sourceTree = "<group>"; };
 		B10000036 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
@@ -99,16 +106,9 @@
 		B10000039 /* TopicSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopicSelectScene.swift; sourceTree = "<group>"; };
 		B10000040 /* BadgeRoomScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeRoomScene.swift; sourceTree = "<group>"; };
 		B10000041 /* BadgeCelebrationScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeCelebrationScene.swift; sourceTree = "<group>"; };
-		B10000028 /* HUDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDNode.swift; sourceTree = "<group>"; };
-		B10000029 /* TouchControlsNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchControlsNode.swift; sourceTree = "<group>"; };
-		B10000030 /* ProblemDisplayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProblemDisplayNode.swift; sourceTree = "<group>"; };
-		B10000031 /* StarRatingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRatingNode.swift; sourceTree = "<group>"; };
-		B10000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B10000033 /* BackgroundAsteroid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundAsteroid.swift; sourceTree = "<group>"; };
 		B10000042 /* SafeAreaHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeAreaHelper.swift; sourceTree = "<group>"; };
 		B10000044 /* MotherMeteorNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotherMeteorNode.swift; sourceTree = "<group>"; };
 		B10000045 /* ReadingDifficulty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingDifficulty.swift; sourceTree = "<group>"; };
-		C10000001 /* GalacticMath.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GalacticMath.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000050 /* Spaceship_0.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_0.png; sourceTree = "<group>"; };
 		B10000051 /* Spaceship_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_1.png; sourceTree = "<group>"; };
 		B10000052 /* Spaceship_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_2.png; sourceTree = "<group>"; };
@@ -122,6 +122,8 @@
 		B10000060 /* Spaceship_10.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_10.png; sourceTree = "<group>"; };
 		B10000061 /* Spaceship_11.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_11.png; sourceTree = "<group>"; };
 		B10000062 /* Spaceship_12.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_12.png; sourceTree = "<group>"; };
+		C10000001 /* GalacticMath.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GalacticMath.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D14585DD2F5CE34500E912DC /* ShipBanking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShipBanking.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -197,6 +199,7 @@
 		E10000005 /* Systems */ = {
 			isa = PBXGroup;
 			children = (
+				D14585DD2F5CE34500E912DC /* ShipBanking.swift */,
 				B10000018 /* GameManager.swift */,
 				B10000019 /* MathEngine.swift */,
 				B10000020 /* WaveManager.swift */,
@@ -353,6 +356,7 @@
 			files = (
 				A10000001 /* AppDelegate.swift in Sources */,
 				A10000002 /* SceneDelegate.swift in Sources */,
+				D14585DE2F5CE34500E912DC /* ShipBanking.swift in Sources */,
 				A10000003 /* GameViewController.swift in Sources */,
 				A10000004 /* TitleScene.swift in Sources */,
 				A10000005 /* ProfileSelectScene.swift in Sources */,
