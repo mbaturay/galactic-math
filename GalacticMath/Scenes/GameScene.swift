@@ -59,6 +59,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
     private var playerShip: PlayerShip!
     private var hud: HUDNode!
     private var touchControls: TouchControlsNode!
+    private var parallaxBG: ParallaxBackgroundNode?
 
     // Systems
     private var waveManager: WaveManager!
@@ -145,6 +146,11 @@ final class GameScene: SKScene, WaveManagerDelegate {
     // MARK: - Setup
 
     private func setupStarField() {
+        let bg = ParallaxBackgroundNode()
+        bg.setup(size: size)
+        addChild(bg)
+        parallaxBG = bg
+
         starField = StarField()
         starField.setup(size: size, grade: selectedGrade)
         addChild(starField)
@@ -202,6 +208,7 @@ final class GameScene: SKScene, WaveManagerDelegate {
 
         // Highlight starting beam
         beamGrid.setActiveBeam(currentBeam)
+        starField.updateHorizontalParallax(shipBeam: currentBeam, totalBeams: selectedGrade.beamCount)
     }
 
     private func setupHUD() {
@@ -250,6 +257,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         playerShip.moveToBeam(currentBeam, x: x, beamAngle: angle)
         beamGrid.setActiveBeam(currentBeam)
         hud.updateActiveBeam(currentBeam)
+        starField.updateHorizontalParallax(shipBeam: currentBeam, totalBeams: selectedGrade.beamCount)
+        starField.triggerBankImpulse(direction: -1)
+        parallaxBG?.triggerBankImpulse(direction: -1)
     }
 
     private func movePlayerRight() {
@@ -262,6 +272,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         playerShip.moveToBeam(currentBeam, x: x, beamAngle: angle)
         beamGrid.setActiveBeam(currentBeam)
         hud.updateActiveBeam(currentBeam)
+        starField.updateHorizontalParallax(shipBeam: currentBeam, totalBeams: selectedGrade.beamCount)
+        starField.triggerBankImpulse(direction: 1)
+        parallaxBG?.triggerBankImpulse(direction: 1)
     }
 
     // MARK: - Shooting
@@ -1089,7 +1102,9 @@ final class GameScene: SKScene, WaveManagerDelegate {
         guard isGameActive && !isPaused_ else { return }
 
         starField.update(deltaTime: dt)
+        starField.updateParallaxFrame()
         beamGrid.update(deltaTime: dt)
+        parallaxBG?.update(shipX: playerShip.position.x, sceneWidth: size.width, currentTime: currentTime)
 
         // Background asteroids — remove off-screen, respawn
         backgroundAsteroids.removeAll { asteroid in

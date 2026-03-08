@@ -49,6 +49,8 @@
 		A10000042 /* SafeAreaHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000042 /* SafeAreaHelper.swift */; };
 		A10000044 /* MotherMeteorNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000044 /* MotherMeteorNode.swift */; };
 		A10000045 /* ReadingDifficulty.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000045 /* ReadingDifficulty.swift */; };
+		A10000046 /* ParallaxBackgroundNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000046 /* ParallaxBackgroundNode.swift */; };
+		A10000070 /* bg_1.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000070 /* bg_1.png */; };
 		A10000050 /* Spaceship_0.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000050 /* Spaceship_0.png */; };
 		A10000051 /* Spaceship_1.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000051 /* Spaceship_1.png */; };
 		A10000052 /* Spaceship_2.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000052 /* Spaceship_2.png */; };
@@ -109,6 +111,8 @@
 		B10000042 /* SafeAreaHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeAreaHelper.swift; sourceTree = "<group>"; };
 		B10000044 /* MotherMeteorNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotherMeteorNode.swift; sourceTree = "<group>"; };
 		B10000045 /* ReadingDifficulty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingDifficulty.swift; sourceTree = "<group>"; };
+		B10000046 /* ParallaxBackgroundNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParallaxBackgroundNode.swift; sourceTree = "<group>"; };
+		B10000070 /* bg_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bg_1.png; sourceTree = "<group>"; };
 		B10000050 /* Spaceship_0.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_0.png; sourceTree = "<group>"; };
 		B10000051 /* Spaceship_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_1.png; sourceTree = "<group>"; };
 		B10000052 /* Spaceship_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Spaceship_2.png; sourceTree = "<group>"; };
@@ -192,6 +196,7 @@
 				B10000017 /* SectorSentinel.swift */,
 				B10000033 /* BackgroundAsteroid.swift */,
 				B10000044 /* MotherMeteorNode.swift */,
+				B10000046 /* ParallaxBackgroundNode.swift */,
 			);
 			path = Nodes;
 			sourceTree = "<group>";
@@ -249,6 +254,7 @@
 			isa = PBXGroup;
 			children = (
 				E10000010 /* Ships */,
+				E10000011 /* Backgrounds */,
 			);
 			path = "Space Pack";
 			sourceTree = "<group>";
@@ -271,6 +277,14 @@
 				B10000062 /* Spaceship_12.png */,
 			);
 			path = Ships;
+			sourceTree = "<group>";
+		};
+		E10000011 /* Backgrounds */ = {
+			isa = PBXGroup;
+			children = (
+				B10000070 /* bg_1.png */,
+			);
+			path = Backgrounds;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -344,6 +358,7 @@
 				A10000060 /* Spaceship_10.png in Resources */,
 				A10000061 /* Spaceship_11.png in Resources */,
 				A10000062 /* Spaceship_12.png in Resources */,
+				A10000070 /* bg_1.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -397,6 +412,7 @@
 				A10000042 /* SafeAreaHelper.swift in Sources */,
 				A10000044 /* MotherMeteorNode.swift in Sources */,
 				A10000045 /* ReadingDifficulty.swift in Sources */,
+				A10000046 /* ParallaxBackgroundNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

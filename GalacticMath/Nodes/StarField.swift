@@ -1,14 +1,30 @@
 import SpriteKit
 
 final class StarField: SKNode {
-    private var layers: [[SKShapeNode]] = [[], [], []]
+    private var layerContainers: [SKNode] = []
+    private var layerStars: [[SKShapeNode]] = [[], [], []]
     private var speeds: [CGFloat] = [15, 30, 60]
     private var sceneSize: CGSize = .zero
     private var grade: Grade = .kindergarten
 
+    // Horizontal parallax
+    private var targetOffsetX: CGFloat = 0
+    private var currentOffsetX: CGFloat = 0
+    private var lastShipBeam: Int = -1
+    private let layerParallaxX: [CGFloat] = [18, 38, 65]
+    private let layerParallaxY: [CGFloat] = [5, 10, 18]
+
     func setup(size: CGSize, grade: Grade) {
         self.sceneSize = size
         self.grade = grade
+
+        // Create layer containers
+        for i in 0..<3 {
+            let container = SKNode()
+            container.zPosition = -100 + CGFloat(i)
+            addChild(container)
+            layerContainers.append(container)
+        }
 
         let starCounts = [40, 25, 15]
         let starSizes: [CGFloat] = [1.0, 1.5, 2.5]
@@ -38,9 +54,8 @@ final class StarField: SKNode {
 
                 star.strokeColor = .clear
                 star.alpha = CGFloat(layer + 1) / 3.0
-                star.zPosition = -100 + CGFloat(layer)
-                addChild(star)
-                layers[layer].append(star)
+                layerContainers[layer].addChild(star)
+                layerStars[layer].append(star)
             }
         }
 
@@ -50,7 +65,7 @@ final class StarField: SKNode {
     func update(deltaTime: TimeInterval) {
         let dt = CGFloat(deltaTime)
         for layer in 0..<3 {
-            for star in layers[layer] {
+            for star in layerStars[layer] {
                 star.position.y -= speeds[layer] * dt
                 if star.position.y < -5 {
                     star.position.y = sceneSize.height + 5
@@ -58,6 +73,37 @@ final class StarField: SKNode {
                 }
             }
         }
+    }
+
+    // MARK: - Horizontal Parallax
+
+    func updateHorizontalParallax(shipBeam: Int, totalBeams: Int) {
+        guard shipBeam != lastShipBeam else { return }
+        lastShipBeam = shipBeam
+        let normalized = totalBeams > 1
+            ? (CGFloat(shipBeam) / CGFloat(totalBeams - 1)) * 2 - 1
+            : 0
+        targetOffsetX = normalized
+    }
+
+    func updateParallaxFrame() {
+        let lerpFactor: CGFloat = 0.06
+        currentOffsetX += (targetOffsetX - currentOffsetX) * lerpFactor
+        applyLayerOffsets(normalized: currentOffsetX)
+    }
+
+    private func applyLayerOffsets(normalized: CGFloat) {
+        for i in 0..<layerContainers.count {
+            layerContainers[i].position.x = -normalized * layerParallaxX[i]
+            layerContainers[i].position.y = normalized * layerParallaxY[i]
+        }
+    }
+
+    func triggerBankImpulse(direction: Int) {
+        let impulse = CGFloat(direction) * -25
+        layerContainers[2].position.x += impulse
+        layerContainers[1].position.x += impulse * 0.6
+        layerContainers[0].position.x += impulse * 0.3
     }
 
     private func runShootingStarLoop() {
